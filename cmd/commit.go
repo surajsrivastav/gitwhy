@@ -1,0 +1,147 @@
+package cmd
+
+import (
+	"fmt"
+	"os"
+	"os/exec"
+	"strings"
+
+	"github.com/spf13/cobra"
+
+	"github.com/anomalyco/gitwhy/pkg/config"
+	"github.com/anomalyco/gitwhy/pkg/provenance"
+	"github.com/anomalyco/gitwhy/pkg/storage"
+)
+
+type commitFlags struct {
+	by       string
+	intent   string
+	spec     string
+	specHash string
+	origin   string
+	ticket   string
+	prompt   string
+	model    string
+	message  string
+}
+
+var commitFlag commitFlags
+
+var commitCmd = &cobra.Command{
+	Use:   "commit",
+	Short: "Commit with provenance flags",
+	Long: `Record a git commit with optional provenance metadata.
+
+Captures who (or what) authored the change, why it was made, and what
+spec or prompt drove it. Stored as structured metadata using the
+configured storage backend.`,
+	RunE: func(cmd *cobra.Command, args []string) error {
+		repoPath, err := config.FindRepoRoot()
+		if err != nil {
+			return fmt.Errorf("find repo: %w", err)
+		}
+
+		gitArgs := []string{"-C", repoPath, "commit"}
+
+		if commitFlag.message != "" {
+			gitArgs = append(gitArgs, "-m", commitFlag.message)
+		}
+
+		gitArgs = append(gitArgs, args...)
+
+		gitCmd := exec.Command("git", gitArgs...)
+		gitCmd.Stdin = os.Stdin
+		gitCmd.Stdout = os.Stdout
+		gitCmd.Stderr = os.Stderr
+
+		if err := gitCmd.Run(); err != nil {
+			if exitErr, ok := err.(*exec.ExitError); ok {
+				os.Exit(exitErr.ExitCode())
+			}
+			return fmt.Errorf("git commit: %w", err)
+		}
+
+		if hasProvenanceFlags() {
+			hashOutput, err := exec.Command("git", "-C", repoPath, "rev-parse", "HEAD").CombinedOutput()
+			if err != nil {
+				return fmt.Errorf("get commit hash: %w", err)
+			}
+			commitHash := strings.TrimSpace(string(hashOutput))
+
+			record := provenance.NewRecord(provenance.TargetCommit, commitHash)
+
+			if commitFlag.by != "" {
+				switch strings.ToLower(commitFlag.by) {
+				case "human":
+					record.SetAttribution(provenance.AttributionHuman)
+				case "copilot":
+					record.SetAttribution(provenance.AttributionCopilot)
+				default:
+					if strings.HasPrefix(strings.ToLower(commitFlag.by), "agent:") {
+						record.SetAttribution(provenance.AttributionType(commitFlag.by))
+					} else {
+						record.SetAttribution(provenance.AgentAttribution(commitFlag.by))
+					}
+				}
+			}
+
+			originStr := commitFlag.origin
+			if originStr == "" {
+				if commitFlag.by != "" && commitFlag.by != "human" {
+					originStr = "spec"
+				} else {
+					originStr = "human"
+				}
+			}
+
+			record.SetIntent(
+				commitFlag.intent,
+				provenance.OriginType(originStr),
+				commitFlag.spec,
+				commitFlag.specHash,
+			)
+
+			record.SetContext(commitFlag.ticket, commitFlag.prompt, commitFlag.model)
+
+			cfg, err := config.Load(repoPath)
+			if err != nil {
+				return fmt.Errorf("load config: %w", err)
+			}
+
+			factory := storage.NewFactory()
+			factory.Register("git-notes", storage.NewGitNotesBackend(repoPath))
+			factory.Register("file", storage.NewFileBackend(config.ConfigDir(repoPath)))
+
+			backend, err := factory.Get(string(cfg.Backend))
+			if err != nil {
+				return fmt.Errorf("get backend: %w", err)
+			}
+
+			if err := backend.Store(record); err != nil {
+				return fmt.Errorf("store provenance record: %w", err)
+			}
+
+			fmt.Printf("  gitwhy: provenance recorded (%s backend)\n", backend.Name())
+		}
+
+		return nil
+	},
+}
+
+func init() {
+	commitCmd.Flags().StringVarP(&commitFlag.message, "message", "m", "", "Commit message")
+	commitCmd.Flags().StringVar(&commitFlag.by, "by", "", "Attribution (human, copilot, agent:<name>)")
+	commitCmd.Flags().StringVar(&commitFlag.intent, "intent", "", "Description of why this change was made")
+	commitCmd.Flags().StringVar(&commitFlag.spec, "spec", "", "Reference to the spec or ticket that drove this change")
+	commitCmd.Flags().StringVar(&commitFlag.specHash, "spec-hash", "", "Hash of spec content at generation time")
+	commitCmd.Flags().StringVar(&commitFlag.origin, "origin", "", "Origin type (human, spec, prompt, template, upstream)")
+	commitCmd.Flags().StringVar(&commitFlag.ticket, "ticket", "", "Ticket or issue reference")
+	commitCmd.Flags().StringVar(&commitFlag.prompt, "prompt", "", "Prompt used (if AI-generated)")
+	commitCmd.Flags().StringVar(&commitFlag.model, "model", "", "Model name (if AI-generated)")
+}
+
+func hasProvenanceFlags() bool {
+	return commitFlag.by != "" || commitFlag.intent != "" || commitFlag.spec != "" ||
+		commitFlag.specHash != "" || commitFlag.origin != "" || commitFlag.ticket != "" ||
+		commitFlag.prompt != "" || commitFlag.model != ""
+}
