@@ -42,6 +42,23 @@ func SetVersion(commit, date string) {
 	rootCmd.Version = commitVersion
 }
 
+var versionCmd = &cobra.Command{
+	Use:   "version",
+	Short: "Print the version number",
+	RunE: func(cmd *cobra.Command, args []string) error {
+		version := commitVersion
+		if version == "" {
+			version = "dev"
+		}
+		fmt.Printf("ghw %s", version)
+		if buildDate != "" {
+			fmt.Printf(" (%s)", buildDate)
+		}
+		fmt.Println()
+		return nil
+	},
+}
+
 func init() {
 	cobra.EnableCommandSorting = false
 
@@ -53,6 +70,7 @@ func init() {
 	rootCmd.AddCommand(logCmd)
 	rootCmd.AddCommand(diffCmd)
 	rootCmd.AddCommand(auditCmd)
+	rootCmd.AddCommand(versionCmd)
 }
 
 func Execute() {
@@ -80,7 +98,8 @@ func isPassthrough(args []string) bool {
 		return false
 	}
 
-	if args[0] == "--help" || args[0] == "-h" || args[0] == "help" {
+	if args[0] == "--help" || args[0] == "-h" || args[0] == "help" ||
+		args[0] == "--version" || args[0] == "-v" {
 		return false
 	}
 

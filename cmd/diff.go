@@ -31,7 +31,7 @@ and detect if the implementation has diverged.`,
 				return fmt.Errorf("hash spec: %w", err)
 			}
 
-			report, err := drift.DetectDrift(filePath, "", diffFlags.spec, "", "")
+			report, err := drift.DetectDrift(filePath, diffFlags.spec, diffFlags.spec, "", "")
 			if err != nil {
 				return fmt.Errorf("drift detection: %w", err)
 			}
