@@ -1,0 +1,19 @@
+{
+  "schema": "gitwhy/v1",
+  "target": {
+    "type": "commit",
+    "ref": "fc8fffeaeb2b2aa6d8686609e3ab514555643935"
+  },
+  "attribution": {
+    "by": "human",
+    "timestamp": "2026-06-12T04:25:01Z"
+  },
+  "intent": {
+    "summary": "testing provenance tracking",
+    "spec": "TEST-1",
+    "origin": "human"
+  },
+  "context": {
+    "ticket": "TICKET-1"
+  }
+}
