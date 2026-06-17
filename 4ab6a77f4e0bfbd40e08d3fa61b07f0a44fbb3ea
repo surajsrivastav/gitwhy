@@ -1,0 +1,18 @@
+{
+  "schema": "gitwhy/v1",
+  "target": {
+    "type": "commit",
+    "ref": "4ab6a77f4e0bfbd40e08d3fa61b07f0a44fbb3ea"
+  },
+  "attribution": {
+    "by": "agent:opencode",
+    "timestamp": "2026-06-17T11:05:53Z"
+  },
+  "intent": {
+    "summary": "publishability blockers — module path, go version, LICENSE, install.sh",
+    "origin": "spec"
+  },
+  "context": {
+    "branch": "master"
+  }
+}
