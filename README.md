@@ -19,7 +19,7 @@ Every commit records structured metadata: who (or what) authored it, why it was 
 
 ## Auto-Capture Features (zero-friction)
 
-These run automatically on `git commit` via the post-commit hook:
+These run automatically on plain `git commit` — no `ghw commit`, no flags, no extra steps. The post-commit hook installed by `ghw init` captures everything silently in the background:
 
 | Feature | What it captures | Source |
 |---------|-----------------|--------|
