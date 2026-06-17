@@ -1,0 +1,18 @@
+{
+  "schema": "gitwhy/v1",
+  "target": {
+    "type": "commit",
+    "ref": "a5542ffd621b2f69556547f5ce0ce56efc89ed98"
+  },
+  "attribution": {
+    "by": "agent:opencode",
+    "timestamp": "2026-06-17T03:49:51Z"
+  },
+  "intent": {
+    "summary": "update ticket example from BLUE-42 to Ticket-42",
+    "origin": "human"
+  },
+  "context": {
+    "branch": "master"
+  }
+}
