@@ -1,0 +1,18 @@
+{
+  "schema": "gitwhy/v1",
+  "target": {
+    "type": "commit",
+    "ref": "e46aef68af714990515c05d2b0c70eba9df5bcde"
+  },
+  "attribution": {
+    "by": "agent:opencode",
+    "timestamp": "2026-06-17T11:00:29Z"
+  },
+  "intent": {
+    "summary": "open-source readiness — CI, CONTRIBUTING, templates, changelog, gh check, hook fallback",
+    "origin": "spec"
+  },
+  "context": {
+    "branch": "master"
+  }
+}
