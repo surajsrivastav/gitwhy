@@ -89,7 +89,8 @@ func installHook(repoPath string) error {
 	hookContent := fmt.Sprintf(`#!/bin/sh
 # gitwhy auto-capture hook — installed by ghw init
 # Records provenance metadata after every git commit.
-GHW_CAPTURE=1 %s commit 2>/dev/null || true
+# Tries PATH first, falls back to the path at install time.
+GHW_CAPTURE=1 ghw commit 2>/dev/null || GHW_CAPTURE=1 %s commit 2>/dev/null || true
 `, ghwPath)
 
 	if err := os.MkdirAll(hooksDir, 0755); err != nil {

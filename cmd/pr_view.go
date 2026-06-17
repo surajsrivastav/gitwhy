@@ -25,6 +25,9 @@ var prViewCmd = &cobra.Command{
 Use --why to display provenance context alongside the standard PR view.`,
 	Args: cobra.MaximumNArgs(1),
 	RunE: func(cmd *cobra.Command, args []string) error {
+		if !passthrough.IsGHAvailable() {
+			return fmt.Errorf("gh not found in PATH — gh pr view requires the GitHub CLI")
+		}
 		ghArgs := []string{"pr", "view"}
 		ghArgs = append(ghArgs, args...)
 

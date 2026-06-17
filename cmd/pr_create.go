@@ -30,6 +30,9 @@ var prCreateCmd = &cobra.Command{
 Works like gh pr create but adds structured intent capture that is stored
 alongside the PR for future reference.`,
 	RunE: func(cmd *cobra.Command, args []string) error {
+		if !passthrough.IsGHAvailable() {
+			return fmt.Errorf("gh not found in PATH — gh pr create requires the GitHub CLI")
+		}
 		ghArgs := []string{"pr", "create"}
 		ghArgs = append(ghArgs, args...)
 

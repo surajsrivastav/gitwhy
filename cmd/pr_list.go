@@ -18,6 +18,9 @@ var prListCmd = &cobra.Command{
 	Short: "List pull requests with optional attribution filter",
 	Long:  `List GitHub pull requests, optionally filtered by attribution type.`,
 	RunE: func(cmd *cobra.Command, args []string) error {
+		if !passthrough.IsGHAvailable() {
+			return fmt.Errorf("gh not found in PATH — gh pr list requires the GitHub CLI")
+		}
 		ghArgs := []string{"pr", "list"}
 
 		if prListFlags.attributed != "" {

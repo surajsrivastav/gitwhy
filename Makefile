@@ -2,9 +2,10 @@ BINARY := ghw
 MODULE := github.com/anomalyco/gitwhy
 COMMIT := $(shell git rev-parse --short HEAD 2>/dev/null || echo "dev")
 DATE := $(shell date -u +%Y-%m-%dT%H:%M:%SZ)
+VERSION ?= $(shell git describe --tags --always 2>/dev/null || echo "dev")
 LDFLAGS := -ldflags="-X main.commit=$(COMMIT) -X main.date=$(DATE)"
 
-.PHONY: all build test clean lint vet
+.PHONY: all build install test test-short vet lint coverage clean run release snapshot
 
 all: build
 
@@ -36,3 +37,11 @@ clean:
 
 run:
 	go run . $(ARGS)
+
+release:
+	git tag -a v$(VERSION) -m "Release v$(VERSION)"
+	git push origin v$(VERSION)
+	git push origin refs/notes/gitwhy
+
+snapshot:
+	goreleaser release --snapshot --clean 2>/dev/null || echo "goreleaser not installed (brew install goreleaser)"

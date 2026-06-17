@@ -318,6 +318,55 @@ func TestInitCmdRunE(t *testing.T) {
 	if !strings.Contains(output, "gitwhy initialized") {
 		t.Errorf("expected success message, got: %s", output)
 	}
+
+	hookBytes, err := os.ReadFile(filepath.Join(tmpDir, ".git", "hooks", "post-commit"))
+	if err != nil {
+		t.Fatal("expected post-commit hook to exist")
+	}
+	hook := string(hookBytes)
+	if !strings.Contains(hook, "ghw commit") {
+		t.Error("expected hook to contain 'ghw commit'")
+	}
+	if !strings.Contains(hook, "GHW_CAPTURE=1") {
+		t.Error("expected hook to contain GHW_CAPTURE=1")
+	}
+}
+
+func TestInitCmdNoHook(t *testing.T) {
+	tmpDir := t.TempDir()
+	gitCmds := [][]string{
+		{"init"},
+		{"config", "user.email", "test@test.com"},
+		{"config", "user.name", "Test"},
+	}
+	for _, args := range gitCmds {
+		cmd := exec.Command("git", append([]string{"-C", tmpDir}, args...)...)
+		if out, err := cmd.CombinedOutput(); err != nil {
+			t.Fatalf("git %v: %v\n%s", args, err, out)
+		}
+	}
+
+	initCmd.Flags().Set("no-hook", "true")
+	t.Cleanup(func() { initCmd.Flags().Set("no-hook", "false") })
+
+	origWd, _ := os.Getwd()
+	os.Chdir(tmpDir)
+	defer os.Chdir(origWd)
+
+	output := captureStdout(func() {
+		err := initCmd.RunE(initCmd, nil)
+		if err != nil {
+			t.Errorf("initCmd.RunE() error = %v", err)
+		}
+	})
+
+	if !strings.Contains(output, "gitwhy initialized") {
+		t.Errorf("expected success message, got: %s", output)
+	}
+
+	if _, err := os.Stat(filepath.Join(tmpDir, ".git", "hooks", "post-commit")); err == nil {
+		t.Error("expected no post-commit hook when --no-hook is set")
+	}
 }
 
 func TestInitCmdAlreadyInitialized(t *testing.T) {
