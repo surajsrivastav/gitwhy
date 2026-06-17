@@ -1,0 +1,18 @@
+{
+  "schema": "gitwhy/v1",
+  "target": {
+    "type": "commit",
+    "ref": "735e4ac855b601ae8e6e40ad05382d4274e36c5e"
+  },
+  "attribution": {
+    "by": "agent:opencode",
+    "timestamp": "2026-06-17T02:52:10Z"
+  },
+  "intent": {
+    "summary": "add model auto-detection feature with PRD",
+    "origin": "spec"
+  },
+  "context": {
+    "model": "opencode/big-pickle"
+  }
+}
