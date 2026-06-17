@@ -1,0 +1,29 @@
+{
+  "schema": "gitwhy/v1",
+  "target": {
+    "type": "commit",
+    "ref": "a8787f16c4b33fb28567b871ad6c8a0397c04c44"
+  },
+  "attribution": {
+    "by": "agent:opencode",
+    "timestamp": "2026-06-17T03:30:16Z"
+  },
+  "intent": {
+    "summary": "LLM-generated intent summary with conventional-commit fallback",
+    "origin": "spec"
+  },
+  "context": {
+    "branch": "master",
+    "files": [
+      "PRD.md",
+      "cmd/commit.go",
+      "cmd/context.go",
+      "cmd/context_test.go",
+      "pkg/config/config.go",
+      "pkg/config/config_test.go",
+      "pkg/provenance/schema.go",
+      "pkg/provenance/schema_test.go"
+    ],
+    "diff_stats": "8 files changed, 315 insertions(+), 10 deletions(-)"
+  }
+}
