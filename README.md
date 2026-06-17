@@ -1,75 +1,86 @@
 # gitwhy (`ghw`)
 
-A CLI tool that wraps the GitHub CLI (`gh`) with provenance and intent tracking, built for the age of AI-generated code.
+Every `git commit` already knows *what* changed. gitwhy remembers *why*.
 
-Every commit records structured metadata: who (or what) authored it, why it was made, what spec or prompt drove it, and which AI model was involved.
+It automatically captures who (or what) made the change, which AI model was involved, the ticket from your branch name, and a one-line summary — all from a plain `git commit`. No flags, no extra commands, no thinking about it.
+
+## How it works
+
+`ghw init` installs a post-commit hook. After that, every `git commit` silently records provenance in the background. That's it.
+
+```bash
+cd your-repo
+ghw init                        # one-time setup
+git add . && git commit -m "feat: add login"   # business as usual
+ghw why HEAD                    # see what gitwhy captured
+```
+
+## What gets captured automatically
+
+| You write code on... | gitwhy captures... |
+|---|---|
+| `feature/BLUE-42-login` | Ticket `BLUE-42` — parsed from branch name |
+| `feat: add login handler` | Intent `"add login handler"` — parsed from conventional commit, or summarized by your LLM CLI |
+| ...with Claude open | Model `claude-sonnet-4` — auto-detected from `$CLAUDE_MODEL` |
+| ...and Copilot running | Attribution `copilot` — from `--by` flag or config |
+
+You get a record like:
+
+```
+intent:    add login handler
+origin:    spec
+context:
+    ticket:   BLUE-42
+    branch:   feature/BLUE-42-login
+    model:    claude-sonnet-4
+```
 
 ## Commands
 
-| Command | Description |
-|---------|-------------|
-| `ghw commit` | Commit with provenance recording (auto-captures model, ticket, intent) |
-| `ghw init` | Initialize gitwhy in a repository (installs post-commit hook) |
-| `ghw why <ref>` | Show full provenance record for a commit |
-| `ghw log [--why]` | Show commit log with optional intent annotations |
-| `ghw diff` | Show diff with optional drift detection |
-| `ghw config get/set` | View or modify `.gitwhy/config.yaml` |
-| `ghw pr create/view/list` | PR operations with provenance flags |
-| `ghw audit export/summary` | Export or summarize provenance records |
+| If you want to... | Run this |
+|---|---|
+| Set up gitwhy in a repo | `ghw init` |
+| Commit with explicit flags | `ghw commit --by copilot --ticket BLUE-42` |
+| See provenance for a commit | `ghw why HEAD` |
+| Browse annotated history | `ghw log --why` |
+| Toggle LLM summary on/off | `ghw config set summary.enabled false` |
+| Change LLM command | `ghw config set summary.command claude` |
+| Export all records | `ghw audit export` |
 
-## Auto-Capture Features (zero-friction)
+## Flags (all optional)
 
-These run automatically on plain `git commit` — no `ghw commit`, no flags, no extra steps. The post-commit hook installed by `ghw init` captures everything silently in the background:
+Pass these to `ghw commit` when you want to override auto-detection:
 
-| Feature | What it captures | Source |
-|---------|-----------------|--------|
-| **Attribution** | Who authored the change | `--by` flag or `auto_capture.default_by` in config |
-| **Model** | AI model active at commit time | `$ANTHROPIC_MODEL`, `$OPENAI_MODEL`, `$CLAUDE_MODEL`, `$GITHUB_MODEL`, `$AI_MODEL` |
-| **Ticket** | Ticket/issue reference from branch name | Parsed from branch via `[A-Z]+-\d+` regex |
-| **Intent** | One-line summary of changes | LLM summary (default `llm` CLI) or conventional commit parsing |
-| **Branch** | Git branch at commit time | `git rev-parse --abbrev-ref HEAD` |
-| **Commit hash** | Target commit | `git rev-parse HEAD` |
-
-## Explicit Flags
-
-Override or supplement auto-capture with `ghw commit`:
-
-| Flag | Description |
-|------|-------------|
-| `--by` | Attribution: `human`, `copilot`, `agent:<name>` |
-| `--intent` | Description of why the change was made |
-| `--origin` | Origin type: `human`, `spec`, `prompt`, `template`, `upstream` |
-| `--ticket` | Ticket or issue reference |
-| `--spec` | Reference to the spec driving the change |
-| `--spec-hash` | Hash of spec content at generation time |
-| `--prompt` | Prompt used (if AI-generated) |
-| `--model` | Model name (overrides auto-detection) |
+| Flag | What it does |
+|---|---|
+| `--by` | Who: `human`, `copilot`, `agent:<name>` |
+| `--intent` | Why: one-line description |
+| `--origin` | Source: `human`, `spec`, `prompt`, `template`, `upstream` |
+| `--ticket` | Reference: e.g. `BLUE-42` |
+| `--spec` | Spec driving the change |
+| `--spec-hash` | Spec content hash |
+| `--prompt` | Prompt text (if AI-generated) |
+| `--model` | Model name (overrides env detection) |
 | `-m / --message` | Commit message |
 
 ## Configuration
 
+Tweak behavior in `.gitwhy/config.yaml`:
+
 ```yaml
-# .gitwhy/config.yaml
-backend: git-notes           # storage backend: git-notes | file
+backend: git-notes                # how records are stored
 auto_capture:
   enabled: true
-  default_by: agent:opencode  # default attribution for auto-capture
+  default_by: agent:opencode      # default attribution for auto-capture
 summary:
-  enabled: true               # LLM-generated intent summary
-  command: llm                # any CLI accepting a prompt as last arg
-  mode: filenames              # filenames | diff
+  enabled: true                   # generate intent via LLM
+  command: llm                    # any CLI that takes a prompt as last arg
+  mode: filenames                  # filenames | diff
 ```
 
-## Installation
+## Install
 
-### From Source
-
-**Requirements:**
-- Go 1.26.4 or later
-- Git
-- GitHub CLI (`gh`) installed and configured
-
-**Build and install:**
+**You need:** Go 1.26.4+, Git, and the [GitHub CLI](https://cli.github.com/) (`gh`).
 
 ```bash
 git clone https://github.com/surajsrivastav/gitwhy.git
@@ -77,17 +88,12 @@ cd gitwhy
 make build
 ```
 
-Then copy the `ghw` binary to a directory in your `$PATH`:
+Then drop the binary somewhere in your PATH:
 
 ```bash
-# macOS (Homebrew)
-cp ghw /opt/homebrew/bin/
-
-# Linux / macOS
-sudo cp ghw /usr/local/bin/
-
-# Any (add to PATH)
-mkdir -p ~/bin && cp ghw ~/bin && export PATH="$HOME/bin:$PATH"
+cp ghw /opt/homebrew/bin/   # macOS Homebrew
+sudo cp ghw /usr/local/bin/ # Linux/macOS
+# or: mkdir -p ~/bin && cp ghw ~/bin
 ```
 
 Verify:
@@ -96,52 +102,31 @@ Verify:
 ghw version
 ```
 
-### Verify Installation
-
-```bash
-ghw --version
-ghw --help
-```
-
-## Quick Start
-
-```bash
-cd your-repo
-ghw init                           # one-time setup
-git add . && git commit -m "feat: add login"    # commits as usual
-ghw why HEAD                       # see provenance
-```
-
-## Project Structure
+## Project structure
 
 ```
-cmd/          - Cobra command implementations
+cmd/          - CLI commands
 pkg/
-  provenance/ - Provenance data model and schema
-  config/     - Configuration management
-  storage/    - Pluggable storage backends
-  drift/      - Spec drift detection
-  audit/      - Export and summary generation
-  passthrough/ - GitHub CLI passthrough
+  provenance/ - What a record looks like
+  config/     - Reading/writing .gitwhy/config.yaml
+  storage/    - Where records live (git-notes or files)
+  drift/      - Tracking spec changes over time
+  audit/      - Reports and exports
+  passthrough/ - Handing unknown commands to `gh`
 ```
 
 ## Testing
 
 ```bash
-make test          # Run all tests
-make coverage      # Generate coverage report
-make vet           # Run go vet
-make lint          # Run golangci-lint (if installed)
+make test       # run all tests
+make coverage   # coverage report
+make vet        # check for issues
 ```
 
 ## License
 
-This project is licensed under the MIT License — see the [LICENSE](LICENSE) file for details.
-
-## Contributing
-
-Contributions are welcome! Please open an issue or pull request on GitHub.
+MIT — see [LICENSE](LICENSE).
 
 ## Questions?
 
-Refer to the [PRD](PRD.md) for detailed feature documentation and [decisions/](decisions/) for architecture decisions.
+Check the [PRD](PRD.md) for detailed specs, or open an issue on GitHub.
