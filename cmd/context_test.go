@@ -4,8 +4,10 @@ import (
 	"os"
 	"os/exec"
 	"path/filepath"
+	"strings"
 	"testing"
 
+	"github.com/anomalyco/gitwhy/pkg/config"
 	"github.com/anomalyco/gitwhy/pkg/provenance"
 )
 
@@ -161,7 +163,7 @@ func TestAutoFillContextFillsGitContext(t *testing.T) {
 	runGitCmd(t, repo, "commit", "-m", "feat: add auth handler")
 
 	record := provenance.NewRecord(provenance.TargetCommit, "abc123")
-	autoFillContext(record, repo, false, false)
+	autoFillContext(record, repo, false, false, nil)
 
 	if record.Context.Ticket != "BLUE-42" {
 		t.Errorf("expected ticket 'BLUE-42' from branch, got %q", record.Context.Ticket)
@@ -190,7 +192,7 @@ func TestAutoFillContextRespectsExplicitTicket(t *testing.T) {
 
 	record := provenance.NewRecord(provenance.TargetCommit, "abc")
 	record.SetContext("EXPLICIT-99", "", "")
-	autoFillContext(record, repo, true, true)
+	autoFillContext(record, repo, true, true, nil)
 
 	if record.Context.Ticket != "EXPLICIT-99" {
 		t.Errorf("expected explicit ticket to be preserved, got %q", record.Context.Ticket)
@@ -208,7 +210,7 @@ func TestAutoFillContextPreservesExplicitIntent(t *testing.T) {
 
 	record := provenance.NewRecord(provenance.TargetCommit, "abc")
 	record.SetIntent("explicit intent", provenance.OriginHuman, "", "")
-	autoFillContext(record, repo, true, false)
+	autoFillContext(record, repo, true, false, nil)
 
 	if record.Intent.Summary != "explicit intent" {
 		t.Errorf("expected explicit intent to be preserved, got %q", record.Intent.Summary)
@@ -225,7 +227,7 @@ func TestAutoFillContextNonConventionalMessage(t *testing.T) {
 	runGitCmd(t, repo, "commit", "-m", "some random message")
 
 	record := provenance.NewRecord(provenance.TargetCommit, "abc")
-	autoFillContext(record, repo, false, false)
+	autoFillContext(record, repo, false, false, nil)
 
 	if record.Intent.Summary != "" {
 		t.Errorf("expected no intent for non-conventional message, got %q", record.Intent.Summary)
@@ -243,10 +245,111 @@ func TestAutoFillContextWithDetachedHead(t *testing.T) {
 	runGitCmd(t, repo, "checkout", "--detach", "HEAD")
 
 	record := provenance.NewRecord(provenance.TargetCommit, "abc")
-	autoFillContext(record, repo, false, false)
+	autoFillContext(record, repo, false, false, nil)
 
 	if record.Context.Branch == "" {
 		t.Error("expected branch to be non-empty even on detached HEAD")
+	}
+}
+
+func TestGenerateSummaryFilenamesMode(t *testing.T) {
+	repo := t.TempDir()
+	initTestRepo(t, repo)
+	if err := os.WriteFile(filepath.Join(repo, "auth.go"), []byte("package main\n"), 0644); err != nil {
+		t.Fatal(err)
+	}
+	runGitCmd(t, repo, "add", "auth.go")
+	runGitCmd(t, repo, "commit", "-m", "feat: add auth")
+
+	cfg := &config.SummaryConfig{
+		Enabled: true,
+		Command: "echo",
+		Mode:    config.SummaryModeFilenames,
+	}
+	summary := generateSummary(cfg, repo)
+	if summary == "" {
+		t.Fatal("expected non-empty summary")
+	}
+	if !strings.Contains(summary, "auth.go") {
+		t.Errorf("expected summary to contain filenames, got %q", summary)
+	}
+}
+
+func TestGenerateSummaryDisabled(t *testing.T) {
+	repo := t.TempDir()
+	initTestRepo(t, repo)
+
+	summary := generateSummary(&config.SummaryConfig{Enabled: false, Command: "echo"}, repo)
+	if summary != "" {
+		t.Errorf("expected empty summary when disabled, got %q", summary)
+	}
+}
+
+func TestGenerateSummaryNilConfig(t *testing.T) {
+	summary := generateSummary(nil, "/tmp")
+	if summary != "" {
+		t.Errorf("expected empty summary for nil config, got %q", summary)
+	}
+}
+
+func TestGenerateSummaryCommandNotFound(t *testing.T) {
+	repo := t.TempDir()
+	initTestRepo(t, repo)
+	if err := os.WriteFile(filepath.Join(repo, "x.go"), []byte("package main\n"), 0644); err != nil {
+		t.Fatal(err)
+	}
+	runGitCmd(t, repo, "add", "x.go")
+	runGitCmd(t, repo, "commit", "-m", "test")
+
+	cfg := &config.SummaryConfig{
+		Enabled: true,
+		Command: "nonexistent-command-xyz",
+		Mode:    config.SummaryModeFilenames,
+	}
+	summary := generateSummary(cfg, repo)
+	if summary != "" {
+		t.Errorf("expected empty summary for missing command, got %q", summary)
+	}
+}
+
+func TestGenerateSummaryNoChangedFiles(t *testing.T) {
+	repo := t.TempDir()
+	initTestRepo(t, repo)
+
+	cfg := &config.SummaryConfig{
+		Enabled: true,
+		Command: "echo",
+		Mode:    config.SummaryModeFilenames,
+	}
+	summary := generateSummary(cfg, repo)
+	if summary != "" {
+		t.Errorf("expected empty summary with no changes, got %q", summary)
+	}
+}
+
+func TestAutoFillContextFallsBackToConventionalCommitWhenLlmUnavailable(t *testing.T) {
+	repo := t.TempDir()
+	initTestRepo(t, repo)
+
+	if err := os.WriteFile(filepath.Join(repo, "x.go"), []byte("package main\n"), 0644); err != nil {
+		t.Fatal(err)
+	}
+	runGitCmd(t, repo, "add", "x.go")
+	runGitCmd(t, repo, "commit", "-m", "feat: add x file")
+
+	record := provenance.NewRecord(provenance.TargetCommit, "abc")
+	summaryCfg := &config.SummaryConfig{
+		Enabled: true,
+		Command: "nonexistent-llm-xyz",
+		Mode:    config.SummaryModeFilenames,
+	}
+	autoFillContext(record, repo, false, false, summaryCfg)
+
+	if record.Intent.Summary != "add x file" {
+		t.Errorf("expected fallback to conventional commit, got %q", record.Intent.Summary)
+	}
+	if record.Intent.Origin != provenance.OriginType("spec") {
+		t.Errorf("expected origin 'spec' for feat, got %q", record.Intent.Origin)
 	}
 }
 

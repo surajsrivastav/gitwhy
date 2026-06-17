@@ -35,6 +35,7 @@ const (
 	OriginPrompt   OriginType = "prompt"
 	OriginTemplate OriginType = "template"
 	OriginUpstream OriginType = "upstream"
+	OriginAI       OriginType = "ai"
 )
 
 type Target struct {

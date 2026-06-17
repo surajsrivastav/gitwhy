@@ -329,6 +329,9 @@ func TestOriginTypes(t *testing.T) {
 	if OriginUpstream != "upstream" {
 		t.Errorf("unexpected OriginUpstream: %q", OriginUpstream)
 	}
+	if OriginAI != "ai" {
+		t.Errorf("unexpected OriginAI: %q", OriginAI)
+	}
 }
 
 func TestTargetTypes(t *testing.T) {

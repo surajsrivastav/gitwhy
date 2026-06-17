@@ -231,6 +231,78 @@ func TestLoadDirectoryInsteadOfFile(t *testing.T) {
 	}
 }
 
+func TestDefaultSummaryConfig(t *testing.T) {
+	cfg := DefaultSummaryConfig()
+	if !cfg.Enabled {
+		t.Error("expected summary to be enabled by default")
+	}
+	if cfg.Command != "llm" {
+		t.Errorf("expected command 'llm', got %q", cfg.Command)
+	}
+	if cfg.Mode != SummaryModeFilenames {
+		t.Errorf("expected mode %q, got %q", SummaryModeFilenames, cfg.Mode)
+	}
+}
+
+func TestLoadSummaryDefaultsApplied(t *testing.T) {
+	tmpDir := t.TempDir()
+	dir := ConfigDir(tmpDir)
+	os.MkdirAll(dir, 0755)
+	os.WriteFile(ConfigPath(tmpDir), []byte("summary:\n  enabled: true\n"), 0644)
+
+	cfg, err := Load(tmpDir)
+	if err != nil {
+		t.Fatalf("Load() error = %v", err)
+	}
+	if cfg.Summary == nil || !cfg.Summary.Enabled {
+		t.Error("expected summary to be enabled")
+	}
+	if cfg.Summary.Command != "llm" {
+		t.Errorf("expected default command 'llm', got %q", cfg.Summary.Command)
+	}
+	if cfg.Summary.Mode != SummaryModeFilenames {
+		t.Errorf("expected default mode %q, got %q", SummaryModeFilenames, cfg.Summary.Mode)
+	}
+}
+
+func TestLoadSummaryCustomCommand(t *testing.T) {
+	tmpDir := t.TempDir()
+	dir := ConfigDir(tmpDir)
+	os.MkdirAll(dir, 0755)
+	os.WriteFile(ConfigPath(tmpDir), []byte("summary:\n  enabled: true\n  command: claude\n  mode: diff\n"), 0644)
+
+	cfg, err := Load(tmpDir)
+	if err != nil {
+		t.Fatalf("Load() error = %v", err)
+	}
+	if cfg.Summary.Command != "claude" {
+		t.Errorf("expected 'claude', got %q", cfg.Summary.Command)
+	}
+	if cfg.Summary.Mode != SummaryModeDiff {
+		t.Errorf("expected mode %q, got %q", SummaryModeDiff, cfg.Summary.Mode)
+	}
+}
+
+func TestLoadSummaryDisabledNoDefaults(t *testing.T) {
+	tmpDir := t.TempDir()
+	dir := ConfigDir(tmpDir)
+	os.MkdirAll(dir, 0755)
+	os.WriteFile(ConfigPath(tmpDir), []byte("summary:\n  enabled: false\n"), 0644)
+
+	cfg, err := Load(tmpDir)
+	if err != nil {
+		t.Fatalf("Load() error = %v", err)
+	}
+	if cfg.Summary != nil && cfg.Summary.Command != "" {
+		// When disabled, we don't apply defaults, but the original config
+		// values are preserved from unmarshal. The command would be empty
+		// since we didn't set it.
+		if cfg.Summary.Command != "" {
+			t.Errorf("expected empty command when disabled, got %q", cfg.Summary.Command)
+		}
+	}
+}
+
 func TestBackendConstants(t *testing.T) {
 	if BackendGitNotes != "git-notes" {
 		t.Errorf("unexpected BackendGitNotes value")

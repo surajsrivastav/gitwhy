@@ -125,7 +125,7 @@ configured storage backend.`,
 			ticketSet := commitFlag.ticket != ""
 			record.SetContext(commitFlag.ticket, commitFlag.prompt, model)
 
-			autoFillContext(record, repoPath, intentSet, ticketSet)
+			autoFillContext(record, repoPath, intentSet, ticketSet, cfg.Summary)
 
 			factory := storage.NewFactory()
 			factory.Register("git-notes", storage.NewGitNotesBackend(repoPath))

@@ -30,6 +30,7 @@ type Config struct {
 	File        *FileConfig        `yaml:"file,omitempty"`
 	GitHub      *GitHubConfig      `yaml:"github,omitempty"`
 	AutoCapture *AutoCaptureConfig `yaml:"auto_capture,omitempty"`
+	Summary     *SummaryConfig     `yaml:"summary,omitempty"`
 }
 
 type GitNotesConfig struct {
@@ -49,12 +50,33 @@ type AutoCaptureConfig struct {
 	DefaultBy string `yaml:"default_by,omitempty"`
 }
 
+type SummaryMode string
+
+const (
+	SummaryModeFilenames SummaryMode = "filenames"
+	SummaryModeDiff      SummaryMode = "diff"
+)
+
+type SummaryConfig struct {
+	Enabled bool       `yaml:"enabled"`
+	Command string     `yaml:"command,omitempty"`
+	Mode    SummaryMode `yaml:"mode,omitempty"`
+}
+
 func DefaultConfig() *Config {
 	return &Config{
 		Backend: BackendGitNotes,
 		GitNotes: &GitNotesConfig{
 			Enabled: true,
 		},
+	}
+}
+
+func DefaultSummaryConfig() *SummaryConfig {
+	return &SummaryConfig{
+		Enabled: true,
+		Command: "llm",
+		Mode:    SummaryModeFilenames,
 	}
 }
 
@@ -81,6 +103,17 @@ func Load(repoPath string) (*Config, error) {
 	if err := yaml.Unmarshal(data, cfg); err != nil {
 		return nil, fmt.Errorf("parse config: %w", err)
 	}
+
+	if cfg.Summary != nil && cfg.Summary.Enabled {
+		defaults := DefaultSummaryConfig()
+		if cfg.Summary.Command == "" {
+			cfg.Summary.Command = defaults.Command
+		}
+		if cfg.Summary.Mode == "" {
+			cfg.Summary.Mode = defaults.Mode
+		}
+	}
+
 	return cfg, nil
 }
 

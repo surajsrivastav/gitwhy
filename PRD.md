@@ -87,3 +87,27 @@ object, so the marginal value is low. However, inline capture could enable
 faster queries and richer context without resolving the commit diff. Files
 would be captured via `git diff-tree --root --name-only HEAD` and stats via
 `git diff-tree --root --shortstat HEAD`.
+
+### 6. LLM-Generated Summary
+
+When `summary.enabled` is `true` (default) in `.gitwhy/config.yaml`, the
+auto-capture flow passes the changed file list (or diff) through an external
+LLM CLI to generate a one-line intent summary.
+
+**Config schema:**
+
+```yaml
+summary:
+  enabled: true
+  command: llm              # any CLI that accepts a prompt as last arg
+  mode: filenames            # filenames | diff
+```
+
+**Behavior:**
+
+- LLM is tried first; if the command fails or returns empty, falls back to
+  conventional-commit parsing (current behavior)
+- `filenames` mode: prompt is `"Summarize this change in a few words: auth.go, main.go"`
+- `diff` mode: prompt includes the actual diff output for each changed file
+- Origin is set to `ai` when LLM-generated, preserving the audit trail
+- Configurable per-repo via `ghw config set summary.command "claude"`
