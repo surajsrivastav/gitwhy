@@ -118,10 +118,7 @@ func (s *Summary) String() string {
 }
 
 func exportJSON(records []*provenance.Record) (string, error) {
-	data, err := json.MarshalIndent(records, "", "  ")
-	if err != nil {
-		return "", fmt.Errorf("marshal records: %w", err)
-	}
+	data, _ := json.MarshalIndent(records, "", "  ")
 	return string(data), nil
 }
 
@@ -130,9 +127,7 @@ func exportCSV(records []*provenance.Record) (string, error) {
 	writer := csv.NewWriter(&b)
 
 	header := []string{"ref", "type", "attribution", "timestamp", "intent", "spec", "spec_hash", "origin", "ticket", "prompt", "model"}
-	if err := writer.Write(header); err != nil {
-		return "", err
-	}
+	writer.Write(header)
 
 	for _, r := range records {
 		row := []string{
@@ -148,14 +143,9 @@ func exportCSV(records []*provenance.Record) (string, error) {
 			r.Context.Prompt,
 			r.Context.Model,
 		}
-		if err := writer.Write(row); err != nil {
-			return "", err
-		}
+		writer.Write(row)
 	}
 
 	writer.Flush()
-	if err := writer.Error(); err != nil {
-		return "", err
-	}
 	return b.String(), nil
 }

@@ -38,15 +38,24 @@ func TestNewRecordPR(t *testing.T) {
 
 func TestSetAttribution(t *testing.T) {
 	record := NewRecord(TargetCommit, "abc")
+	record.Attribution.Timestamp = ""
 	record.SetAttribution(AttributionCopilot)
 
 	if record.Attribution.By != AttributionCopilot {
 		t.Errorf("expected %q, got %q", AttributionCopilot, record.Attribution.By)
 	}
+	if record.Attribution.Timestamp == "" {
+		t.Error("expected timestamp to be set after SetAttribution")
+	}
 
 	record.SetAttribution(AgentAttribution("blue"))
 	if record.Attribution.By != AttributionType("agent:blue") {
 		t.Errorf("expected agent:blue, got %q", record.Attribution.By)
+	}
+
+	record.SetAttribution(AttributionPair)
+	if record.Attribution.By != AttributionPair {
+		t.Errorf("expected pair, got %q", record.Attribution.By)
 	}
 }
 
@@ -66,6 +75,14 @@ func TestSetIntent(t *testing.T) {
 	if record.Intent.SpecHash != "abc123" {
 		t.Errorf("expected spec hash abc123, got %q", record.Intent.SpecHash)
 	}
+
+	record.SetIntent("", OriginPrompt, "", "")
+	if record.Intent.Summary != "" {
+		t.Errorf("expected empty summary")
+	}
+	if record.Intent.Origin != OriginPrompt {
+		t.Errorf("expected origin prompt, got %q", record.Intent.Origin)
+	}
 }
 
 func TestSetContext(t *testing.T) {
@@ -80,6 +97,11 @@ func TestSetContext(t *testing.T) {
 	}
 	if record.Context.Model != "claude-4" {
 		t.Errorf("expected model claude-4, got %q", record.Context.Model)
+	}
+
+	record.SetContext("", "", "")
+	if record.Context.Ticket != "" || record.Context.Prompt != "" || record.Context.Model != "" {
+		t.Error("expected all context fields to be empty")
 	}
 }
 
@@ -172,6 +194,11 @@ func TestIsAgentAttribution(t *testing.T) {
 		{AttributionHuman, false},
 		{AttributionCopilot, false},
 		{AttributionPair, false},
+		{AttributionType(""), false},
+		{AttributionType("x"), false},
+		{AttributionType("agent"), false},
+		{AttributionType("agent:"), false},
+		{AttributionType("agent:a"), true},
 		{AgentAttribution("blue"), true},
 		{AttributionType("agent:copilot"), true},
 	}
@@ -224,5 +251,69 @@ func TestEmptyRecordFailsValidate(t *testing.T) {
 	r := &Record{}
 	if err := r.Validate(); err == nil {
 		t.Error("expected validation error for empty record")
+	}
+}
+
+func TestUnmarshalInvalidJSON(t *testing.T) {
+	_, err := Unmarshal([]byte("{invalid json"))
+	if err == nil {
+		t.Error("expected error for invalid JSON")
+	}
+}
+
+func TestAgentAttributionFormat(t *testing.T) {
+	agent := AgentAttribution("my-agent")
+	if string(agent) != "agent:my-agent" {
+		t.Errorf("expected 'agent:my-agent', got %q", agent)
+	}
+}
+
+func TestMarshalIndent(t *testing.T) {
+	r := NewRecord(TargetCommit, "abc123")
+	data, err := r.Marshal()
+	if err != nil {
+		t.Fatal(err)
+	}
+	if len(data) == 0 {
+		t.Error("expected non-empty marshaled data")
+	}
+}
+
+func TestOriginTypes(t *testing.T) {
+	if OriginHuman != "human" {
+		t.Errorf("unexpected OriginHuman: %q", OriginHuman)
+	}
+	if OriginSpec != "spec" {
+		t.Errorf("unexpected OriginSpec: %q", OriginSpec)
+	}
+	if OriginPrompt != "prompt" {
+		t.Errorf("unexpected OriginPrompt: %q", OriginPrompt)
+	}
+	if OriginTemplate != "template" {
+		t.Errorf("unexpected OriginTemplate: %q", OriginTemplate)
+	}
+	if OriginUpstream != "upstream" {
+		t.Errorf("unexpected OriginUpstream: %q", OriginUpstream)
+	}
+}
+
+func TestTargetTypes(t *testing.T) {
+	if TargetCommit != "commit" {
+		t.Errorf("unexpected TargetCommit: %q", TargetCommit)
+	}
+	if TargetPR != "pr" {
+		t.Errorf("unexpected TargetPR: %q", TargetPR)
+	}
+}
+
+func TestAttributionTypes(t *testing.T) {
+	if AttributionHuman != "human" {
+		t.Errorf("unexpected AttributionHuman: %q", AttributionHuman)
+	}
+	if AttributionCopilot != "copilot" {
+		t.Errorf("unexpected AttributionCopilot: %q", AttributionCopilot)
+	}
+	if AttributionPair != "pair" {
+		t.Errorf("unexpected AttributionPair: %q", AttributionPair)
 	}
 }

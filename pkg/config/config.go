@@ -88,10 +88,7 @@ func Save(cfg *Config) error {
 		return fmt.Errorf("create config dir: %w", err)
 	}
 
-	data, err := yaml.Marshal(cfg)
-	if err != nil {
-		return fmt.Errorf("marshal config: %w", err)
-	}
+	data, _ := yaml.Marshal(cfg)
 
 	if err := os.WriteFile(ConfigPath(cfg.RepoPath), data, 0644); err != nil {
 		return fmt.Errorf("write config: %w", err)

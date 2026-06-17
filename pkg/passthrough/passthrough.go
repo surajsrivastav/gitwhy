@@ -8,12 +8,10 @@ import (
 
 var ghBin string
 
+var lookPath = exec.LookPath
+
 func init() {
-	var err error
-	ghBin, err = exec.LookPath("gh")
-	if err != nil {
-		ghBin = ""
-	}
+	ghBin, _ = lookPath("gh")
 }
 
 func IsGHAvailable() bool {
