@@ -1,0 +1,16 @@
+{
+  "schema": "gitwhy/v1",
+  "target": {
+    "type": "commit",
+    "ref": "c9630be7e1e82b1a59552417fd2ee3cb52374aba"
+  },
+  "attribution": {
+    "by": "agent:opencode",
+    "timestamp": "2026-06-17T03:00:42Z"
+  },
+  "intent": {
+    "summary": "",
+    "origin": "spec"
+  },
+  "context": {}
+}
