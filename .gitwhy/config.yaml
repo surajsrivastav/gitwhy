@@ -1,0 +1,6 @@
+backend: git-notes
+git_notes:
+    enabled: true
+auto_capture:
+    enabled: true
+    default_by: agent:opencode

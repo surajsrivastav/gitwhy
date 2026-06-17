@@ -26,9 +26,10 @@ type Config struct {
 	Backend  StorageBackend `yaml:"backend"`
 	RepoPath string         `yaml:"-"`
 
-	GitNotes *GitNotesConfig `yaml:"git_notes,omitempty"`
-	File     *FileConfig     `yaml:"file,omitempty"`
-	GitHub   *GitHubConfig   `yaml:"github,omitempty"`
+	GitNotes    *GitNotesConfig    `yaml:"git_notes,omitempty"`
+	File        *FileConfig        `yaml:"file,omitempty"`
+	GitHub      *GitHubConfig      `yaml:"github,omitempty"`
+	AutoCapture *AutoCaptureConfig `yaml:"auto_capture,omitempty"`
 }
 
 type GitNotesConfig struct {
@@ -41,6 +42,11 @@ type FileConfig struct {
 
 type GitHubConfig struct {
 	Token string `yaml:"token,omitempty"`
+}
+
+type AutoCaptureConfig struct {
+	Enabled   bool   `yaml:"enabled"`
+	DefaultBy string `yaml:"default_by,omitempty"`
 }
 
 func DefaultConfig() *Config {

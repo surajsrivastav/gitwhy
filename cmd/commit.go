@@ -42,27 +42,36 @@ configured storage backend.`,
 			return fmt.Errorf("find repo: %w", err)
 		}
 
-		gitArgs := []string{"-C", repoPath, "commit"}
-
-		if commitFlag.message != "" {
-			gitArgs = append(gitArgs, "-m", commitFlag.message)
+		cfg, err := config.Load(repoPath)
+		if err != nil {
+			return fmt.Errorf("load config: %w", err)
 		}
 
-		gitArgs = append(gitArgs, args...)
+		isCapture := os.Getenv("GHW_CAPTURE") != ""
 
-		gitCmd := exec.Command("git", gitArgs...)
-		gitCmd.Stdin = os.Stdin
-		gitCmd.Stdout = os.Stdout
-		gitCmd.Stderr = os.Stderr
+		if !isCapture {
+			gitArgs := []string{"-C", repoPath, "commit"}
 
-		if err := gitCmd.Run(); err != nil {
-			if exitErr, ok := err.(*exec.ExitError); ok {
-				os.Exit(exitErr.ExitCode())
+			if commitFlag.message != "" {
+				gitArgs = append(gitArgs, "-m", commitFlag.message)
 			}
-			return fmt.Errorf("git commit: %w", err)
+
+			gitArgs = append(gitArgs, args...)
+
+			gitCmd := exec.Command("git", gitArgs...)
+			gitCmd.Stdin = os.Stdin
+			gitCmd.Stdout = os.Stdout
+			gitCmd.Stderr = os.Stderr
+
+			if err := gitCmd.Run(); err != nil {
+				if exitErr, ok := err.(*exec.ExitError); ok {
+					os.Exit(exitErr.ExitCode())
+				}
+				return fmt.Errorf("git commit: %w", err)
+			}
 		}
 
-		if hasProvenanceFlags() {
+		if isCapture || hasProvenanceFlags() {
 			hashOutput, err := exec.Command("git", "-C", repoPath, "rev-parse", "HEAD").CombinedOutput()
 			if err != nil {
 				return fmt.Errorf("get commit hash: %w", err)
@@ -71,24 +80,29 @@ configured storage backend.`,
 
 			record := provenance.NewRecord(provenance.TargetCommit, commitHash)
 
-			if commitFlag.by != "" {
-				switch strings.ToLower(commitFlag.by) {
+			by := commitFlag.by
+			if by == "" && isCapture && cfg.AutoCapture != nil && cfg.AutoCapture.DefaultBy != "" {
+				by = cfg.AutoCapture.DefaultBy
+			}
+
+			if by != "" {
+				switch strings.ToLower(by) {
 				case "human":
 					record.SetAttribution(provenance.AttributionHuman)
 				case "copilot":
 					record.SetAttribution(provenance.AttributionCopilot)
 				default:
-					if strings.HasPrefix(strings.ToLower(commitFlag.by), "agent:") {
-						record.SetAttribution(provenance.AttributionType(commitFlag.by))
+					if strings.HasPrefix(strings.ToLower(by), "agent:") {
+						record.SetAttribution(provenance.AttributionType(by))
 					} else {
-						record.SetAttribution(provenance.AgentAttribution(commitFlag.by))
+						record.SetAttribution(provenance.AgentAttribution(by))
 					}
 				}
 			}
 
 			originStr := commitFlag.origin
 			if originStr == "" {
-				if commitFlag.by != "" && commitFlag.by != "human" {
+				if by != "" && by != "human" {
 					originStr = "spec"
 				} else {
 					originStr = "human"
@@ -103,16 +117,11 @@ configured storage backend.`,
 			)
 
 			model := commitFlag.model
-			if model == "" && hasProvenanceFlags() {
+			if model == "" {
 				model = resolveModel()
 			}
 
 			record.SetContext(commitFlag.ticket, commitFlag.prompt, model)
-
-			cfg, err := config.Load(repoPath)
-			if err != nil {
-				return fmt.Errorf("load config: %w", err)
-			}
 
 			factory := storage.NewFactory()
 			factory.Register("git-notes", storage.NewGitNotesBackend(repoPath))
