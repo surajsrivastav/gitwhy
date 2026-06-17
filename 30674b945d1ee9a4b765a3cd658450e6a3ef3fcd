@@ -1,0 +1,22 @@
+{
+  "schema": "gitwhy/v1",
+  "target": {
+    "type": "commit",
+    "ref": "30674b945d1ee9a4b765a3cd658450e6a3ef3fcd"
+  },
+  "attribution": {
+    "by": "agent:opencode",
+    "timestamp": "2026-06-17T03:35:06Z"
+  },
+  "intent": {
+    "summary": "remove misleading gh=ghw alias from README",
+    "origin": "human"
+  },
+  "context": {
+    "branch": "master",
+    "files": [
+      "README.md"
+    ],
+    "diff_stats": "1 file changed, 127 insertions(+)"
+  }
+}
