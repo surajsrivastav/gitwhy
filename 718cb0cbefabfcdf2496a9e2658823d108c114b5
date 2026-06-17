@@ -1,0 +1,18 @@
+{
+  "schema": "gitwhy/v1",
+  "target": {
+    "type": "commit",
+    "ref": "718cb0cbefabfcdf2496a9e2658823d108c114b5"
+  },
+  "attribution": {
+    "by": "agent:opencode",
+    "timestamp": "2026-06-17T03:46:19Z"
+  },
+  "intent": {
+    "summary": "humanize README — conversational tone, narrative flow",
+    "origin": "human"
+  },
+  "context": {
+    "branch": "master"
+  }
+}
