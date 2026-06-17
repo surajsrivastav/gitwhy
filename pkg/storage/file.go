@@ -7,7 +7,7 @@ import (
 	"path/filepath"
 	"strings"
 
-	"github.com/anomalyco/gitwhy/pkg/provenance"
+	"github.com/surajsrivastav/gitwhy/pkg/provenance"
 )
 
 type FileBackend struct {

@@ -1,7 +1,7 @@
 package main
 
 import (
-	"github.com/anomalyco/gitwhy/cmd"
+	"github.com/surajsrivastav/gitwhy/cmd"
 )
 
 var (

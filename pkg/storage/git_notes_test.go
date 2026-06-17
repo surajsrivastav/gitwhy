@@ -7,7 +7,7 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/anomalyco/gitwhy/pkg/provenance"
+	"github.com/surajsrivastav/gitwhy/pkg/provenance"
 )
 
 func initGitRepo(t *testing.T) string {

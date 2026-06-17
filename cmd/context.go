@@ -7,8 +7,8 @@ import (
 	"regexp"
 	"strings"
 
-	"github.com/anomalyco/gitwhy/pkg/config"
-	"github.com/anomalyco/gitwhy/pkg/provenance"
+	"github.com/surajsrivastav/gitwhy/pkg/config"
+	"github.com/surajsrivastav/gitwhy/pkg/provenance"
 )
 
 var ticketPattern = regexp.MustCompile(`[A-Z]+-\d+`)

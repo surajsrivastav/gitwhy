@@ -1,5 +1,5 @@
 BINARY := ghw
-MODULE := github.com/anomalyco/gitwhy
+MODULE := github.com/surajsrivastav/gitwhy
 COMMIT := $(shell git rev-parse --short HEAD 2>/dev/null || echo "dev")
 DATE := $(shell date -u +%Y-%m-%dT%H:%M:%SZ)
 VERSION ?= $(shell git describe --tags --always 2>/dev/null || echo "dev")

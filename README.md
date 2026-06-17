@@ -80,26 +80,36 @@ summary:
 
 ## Install
 
-**You need:** Go 1.26.4+, Git, and the [GitHub CLI](https://cli.github.com/) (`gh`).
+**Prerequisites:** [Go](https://go.dev/dl/) 1.21+, [Git](https://git-scm.com/), and the [GitHub CLI](https://cli.github.com/) (`gh`).
+
+### Quick install (Go required)
+
+```bash
+go install github.com/surajsrivastav/gitwhy@latest
+```
+
+This installs `ghw` to `$GOPATH/bin` (or `$HOME/go/bin` by default). Make sure that directory is in your PATH.
+
+### Manual build
 
 ```bash
 git clone https://github.com/surajsrivastav/gitwhy.git
 cd gitwhy
 make build
+./ghw version
 ```
 
-Then drop the binary somewhere in your PATH:
+Then copy the binary somewhere in PATH:
 
 ```bash
-cp ghw /opt/homebrew/bin/   # macOS Homebrew
-sudo cp ghw /usr/local/bin/ # Linux/macOS
-# or: mkdir -p ~/bin && cp ghw ~/bin
+cp ghw /usr/local/bin/  # Linux/macOS
+# or: mkdir -p ~/bin && cp ghw ~/bin && export PATH="$HOME/bin:$PATH"
 ```
 
-Verify:
+### Install script
 
 ```bash
-ghw version
+curl -sSfL https://raw.githubusercontent.com/surajsrivastav/gitwhy/master/install.sh | sh
 ```
 
 ## Project structure

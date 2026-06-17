@@ -6,7 +6,7 @@ import (
 	"github.com/spf13/cobra"
 	"gopkg.in/yaml.v3"
 
-	"github.com/anomalyco/gitwhy/pkg/config"
+	"github.com/surajsrivastav/gitwhy/pkg/config"
 )
 
 var configCmd = &cobra.Command{

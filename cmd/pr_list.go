@@ -6,7 +6,7 @@ import (
 
 	"github.com/spf13/cobra"
 
-	"github.com/anomalyco/gitwhy/pkg/passthrough"
+	"github.com/surajsrivastav/gitwhy/pkg/passthrough"
 )
 
 var prListFlags struct {

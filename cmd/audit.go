@@ -6,9 +6,9 @@ import (
 
 	"github.com/spf13/cobra"
 
-	"github.com/anomalyco/gitwhy/pkg/audit"
-	"github.com/anomalyco/gitwhy/pkg/config"
-	"github.com/anomalyco/gitwhy/pkg/storage"
+	"github.com/surajsrivastav/gitwhy/pkg/audit"
+	"github.com/surajsrivastav/gitwhy/pkg/config"
+	"github.com/surajsrivastav/gitwhy/pkg/storage"
 )
 
 var auditCmd = &cobra.Command{

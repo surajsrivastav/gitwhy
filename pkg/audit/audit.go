@@ -7,7 +7,7 @@ import (
 	"strings"
 	"time"
 
-	"github.com/anomalyco/gitwhy/pkg/provenance"
+	"github.com/surajsrivastav/gitwhy/pkg/provenance"
 )
 
 type ExportFormat string

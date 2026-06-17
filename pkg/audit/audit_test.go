@@ -5,7 +5,7 @@ import (
 	"testing"
 	"time"
 
-	"github.com/anomalyco/gitwhy/pkg/provenance"
+	"github.com/surajsrivastav/gitwhy/pkg/provenance"
 )
 
 func makeRecord(ref string, by provenance.AttributionType, spec string, ts string) *provenance.Record {

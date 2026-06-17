@@ -7,8 +7,8 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/anomalyco/gitwhy/pkg/config"
-	"github.com/anomalyco/gitwhy/pkg/provenance"
+	"github.com/surajsrivastav/gitwhy/pkg/config"
+	"github.com/surajsrivastav/gitwhy/pkg/provenance"
 )
 
 func TestExtractTicketFromBranch(t *testing.T) {

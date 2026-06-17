@@ -7,7 +7,7 @@ import (
 
 	"github.com/spf13/cobra"
 
-	"github.com/anomalyco/gitwhy/pkg/drift"
+	"github.com/surajsrivastav/gitwhy/pkg/drift"
 )
 
 var diffFlags struct {

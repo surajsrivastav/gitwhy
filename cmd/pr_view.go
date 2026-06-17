@@ -7,10 +7,10 @@ import (
 
 	"github.com/spf13/cobra"
 
-	"github.com/anomalyco/gitwhy/pkg/config"
-	"github.com/anomalyco/gitwhy/pkg/passthrough"
-	"github.com/anomalyco/gitwhy/pkg/provenance"
-	"github.com/anomalyco/gitwhy/pkg/storage"
+	"github.com/surajsrivastav/gitwhy/pkg/config"
+	"github.com/surajsrivastav/gitwhy/pkg/passthrough"
+	"github.com/surajsrivastav/gitwhy/pkg/provenance"
+	"github.com/surajsrivastav/gitwhy/pkg/storage"
 )
 
 var prViewFlags struct {

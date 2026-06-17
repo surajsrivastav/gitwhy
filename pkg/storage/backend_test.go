@@ -3,7 +3,7 @@ package storage
 import (
 	"testing"
 
-	"github.com/anomalyco/gitwhy/pkg/provenance"
+	"github.com/surajsrivastav/gitwhy/pkg/provenance"
 )
 
 type mockBackend struct {

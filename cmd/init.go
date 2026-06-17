@@ -7,7 +7,7 @@ import (
 
 	"github.com/spf13/cobra"
 
-	"github.com/anomalyco/gitwhy/pkg/config"
+	"github.com/surajsrivastav/gitwhy/pkg/config"
 )
 
 var (
