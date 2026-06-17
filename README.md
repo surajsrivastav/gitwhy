@@ -36,6 +36,14 @@ This installs `ghw` to your `$GOBIN` (usually `~/go/bin`). Add it to your `$PATH
 export PATH="$HOME/go/bin:$PATH"
 ```
 
+If `make install` does not produce a binary (known issue on some Go versions), build directly to a directory in your PATH:
+
+```bash
+go build -o /opt/homebrew/bin/ghw .   # macOS Homebrew
+# or
+go build -o /usr/local/bin/ghw .       # Linux/macOS
+```
+
 ### Verify Installation
 
 ```bash
