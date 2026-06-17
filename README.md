@@ -19,7 +19,7 @@ ghw why HEAD                    # see what gitwhy captured
 
 | You write code on... | gitwhy captures... |
 |---|---|
-| `feature/BLUE-42-login` | Ticket `BLUE-42` — parsed from branch name |
+| `feature/Ticket-42-login` | Ticket `Ticket-42` — parsed from branch name |
 | `feat: add login handler` | Intent `"add login handler"` — parsed from conventional commit, or summarized by your LLM CLI |
 | ...with Claude open | Model `claude-sonnet-4` — auto-detected from `$CLAUDE_MODEL` |
 | ...and Copilot running | Attribution `copilot` — from `--by` flag or config |
@@ -30,8 +30,8 @@ You get a record like:
 intent:    add login handler
 origin:    spec
 context:
-    ticket:   BLUE-42
-    branch:   feature/BLUE-42-login
+    ticket:   Ticket-42
+    branch:   feature/Ticket-42-login
     model:    claude-sonnet-4
 ```
 
@@ -40,7 +40,7 @@ context:
 | If you want to... | Run this |
 |---|---|
 | Set up gitwhy in a repo | `ghw init` |
-| Commit with explicit flags | `ghw commit --by copilot --ticket BLUE-42` |
+| Commit with explicit flags | `ghw commit --by copilot --ticket Ticket-42` |
 | See provenance for a commit | `ghw why HEAD` |
 | Browse annotated history | `ghw log --why` |
 | Toggle LLM summary on/off | `ghw config set summary.enabled false` |
@@ -56,7 +56,7 @@ Pass these to `ghw commit` when you want to override auto-detection:
 | `--by` | Who: `human`, `copilot`, `agent:<name>` |
 | `--intent` | Why: one-line description |
 | `--origin` | Source: `human`, `spec`, `prompt`, `template`, `upstream` |
-| `--ticket` | Reference: e.g. `BLUE-42` |
+| `--ticket` | Reference: e.g. `Ticket-42` |
 | `--spec` | Spec driving the change |
 | `--spec-hash` | Spec content hash |
 | `--prompt` | Prompt text (if AI-generated) |
