@@ -1,8 +1,25 @@
 # gitwhy (`ghw`)
 
+[![Go Version](https://img.shields.io/badge/Go-1.21+-00ADD8?style=flat-square&logo=go)](https://golang.org/dl/)
+[![Release](https://img.shields.io/github/v/release/surajsrivastav/gitwhy?style=flat-square&logo=github)](https://github.com/surajsrivastav/gitwhy/releases)
+[![CI](https://img.shields.io/github/actions/workflow/status/surajsrivastav/gitwhy/ci.yml?branch=master&style=flat-square&logo=githubactions&label=tests)](https://github.com/surajsrivastav/gitwhy/actions)
+[![License](https://img.shields.io/badge/license-MIT-blue.svg?style=flat-square)](LICENSE)
+
 Every `git commit` already knows *what* changed. gitwhy remembers *why*.
 
 It automatically captures who (or what) made the change, which AI model was involved, the ticket from your branch name, and a one-line summary — all from a plain `git commit`. No flags, no extra commands, no thinking about it.
+
+## Why gitwhy?
+
+**The problem:** AI-generated code is everywhere. Copilot, Claude, Cursor — every commit is a mix of human and AI work. Months later, nobody knows which model produced what, why a change was made, or what spec it came from. Audit trails are empty. Debugging is guesswork.
+
+**What gitwhy does:** Every `git commit` automatically captures provenance — the AI model, the ticket, the intent, the origin (human/spec/AI). Stored locally in git-notes. Zero friction. Plain `git commit` stays plain.
+
+**Who needs this:**
+- **Teams shipping AI-generated code** — prove what models produced what
+- **Compliance/audit** — trace every change back to a spec or prompt
+- **Debugging** — "which model wrote this?" answered in one command
+- **Solo devs** — never wonder "why did I do that?" six months later
 
 ## How it works
 
@@ -80,30 +97,53 @@ summary:
 
 ## Install
 
-**Prerequisites:** [Go](https://go.dev/dl/) 1.21+, [Git](https://git-scm.com/), and the [GitHub CLI](https://cli.github.com/) (`gh`).
+**Prerequisites:** [Git](https://git-scm.com/), the [GitHub CLI](https://cli.github.com/) (`gh`), and optionally [Go](https://go.dev/dl/) 1.21+ for building from source.
 
-### Quick install (Go required)
+### macOS (Homebrew)
+
+```bash
+brew install surajsrivastav/tap/ghw
+```
+
+### Pre-built binary (any OS)
+
+Download the latest release for your platform from the [releases page](https://github.com/surajsrivastav/gitwhy/releases):
+
+```bash
+# macOS (Apple Silicon)
+curl -sL https://github.com/surajsrivastav/gitwhy/releases/latest/download/gitwhy_darwin_arm64.tar.gz | tar xz
+sudo mv ghw /usr/local/bin/
+
+# macOS (Intel)
+curl -sL https://github.com/surajsrivastav/gitwhy/releases/latest/download/gitwhy_darwin_amd64.tar.gz | tar xz
+sudo mv ghw /usr/local/bin/
+
+# Linux (x86_64)
+curl -sL https://github.com/surajsrivastav/gitwhy/releases/latest/download/gitwhy_linux_amd64.tar.gz | tar xz
+sudo mv ghw /usr/local/bin/
+
+# Linux (ARM64)
+curl -sL https://github.com/surajsrivastav/gitwhy/releases/latest/download/gitwhy_linux_arm64.tar.gz | tar xz
+sudo mv ghw /usr/local/bin/
+
+# Windows (PowerShell)
+curl -sLO https://github.com/surajsrivastav/gitwhy/releases/latest/download/gitwhy_windows_amd64.zip
+Expand-Archive gitwhy_windows_amd64.zip -DestinationPath ~\bin
+```
+
+### Via Go (if you have Go installed)
 
 ```bash
 go install github.com/surajsrivastav/gitwhy@latest
 ```
 
-This installs `ghw` to `$GOPATH/bin` (or `$HOME/go/bin` by default). Make sure that directory is in your PATH.
-
-### Manual build
+### Or build from source
 
 ```bash
 git clone https://github.com/surajsrivastav/gitwhy.git
 cd gitwhy
 make build
-./ghw version
-```
-
-Then copy the binary somewhere in PATH:
-
-```bash
-cp ghw /usr/local/bin/  # Linux/macOS
-# or: mkdir -p ~/bin && cp ghw ~/bin && export PATH="$HOME/bin:$PATH"
+sudo mv ghw /usr/local/bin/
 ```
 
 ### Install script
