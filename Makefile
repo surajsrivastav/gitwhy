@@ -42,6 +42,16 @@ release:
 	git tag -a v$(VERSION) -m "Release v$(VERSION)"
 	git push origin v$(VERSION)
 	git push origin refs/notes/gitwhy
+	@echo ""
+	@echo "Release v$(VERSION) pushed. GitHub Actions will build and upload binaries."
+	@echo "View progress: https://github.com/$(MODULE)/actions"
+	@echo ""
+	@echo "After the release completes, update the Homebrew formula:"
+	@echo "  git clone https://github.com/surajsrivastav/homebrew-tap.git"
+	@echo "  cd homebrew-tap"
+	@echo "  # Download each archive, compute sha256sum, update Formula/ghw.rb"
+	@echo "  git commit -am \"ghw v$(VERSION)\""
+	@echo "  git push"
 
 snapshot:
 	goreleaser release --snapshot --clean 2>/dev/null || echo "goreleaser not installed (brew install goreleaser)"

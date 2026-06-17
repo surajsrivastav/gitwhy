@@ -28,22 +28,6 @@ archives:
       - goos: windows
         format: zip
 
-brews:
-  - name: ghw
-    repository:
-      owner: surajsrivastav
-      name: homebrew-tap
-      token: "{{ .Env.GITHUB_TOKEN }}"
-    commit_author:
-      name: goreleaserbot
-      email: bot@goreleaser.com
-    directory: Formula
-    homepage: "https://github.com/surajsrivastav/gitwhy"
-    description: "Intent-aware Git CLI — wraps gh with provenance tracking"
-    license: "MIT"
-    install: |
-      bin.install "ghw"
-
 changelog:
   sort: asc
   filters:
