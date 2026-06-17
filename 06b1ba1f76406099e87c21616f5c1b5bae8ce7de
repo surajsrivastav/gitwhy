@@ -1,0 +1,16 @@
+{
+  "schema": "gitwhy/v1",
+  "target": {
+    "type": "commit",
+    "ref": "06b1ba1f76406099e87c21616f5c1b5bae8ce7de"
+  },
+  "attribution": {
+    "by": "agent:test4",
+    "timestamp": "2026-06-17T02:39:51Z"
+  },
+  "intent": {
+    "summary": "multiple model candidates",
+    "origin": "spec"
+  },
+  "context": {}
+}
