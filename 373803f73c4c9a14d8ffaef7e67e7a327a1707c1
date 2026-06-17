@@ -1,0 +1,18 @@
+{
+  "schema": "gitwhy/v1",
+  "target": {
+    "type": "commit",
+    "ref": "373803f73c4c9a14d8ffaef7e67e7a327a1707c1"
+  },
+  "attribution": {
+    "by": "agent:test",
+    "timestamp": "2026-06-17T02:39:10Z"
+  },
+  "intent": {
+    "summary": "test model auto-detection",
+    "origin": "spec"
+  },
+  "context": {
+    "model": "claude-4-sonnet"
+  }
+}
