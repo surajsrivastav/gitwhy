@@ -1,0 +1,18 @@
+{
+  "schema": "gitwhy/v1",
+  "target": {
+    "type": "commit",
+    "ref": "ed5f749237b62eeb1cf3d016a1fbc130d7f7dd67"
+  },
+  "attribution": {
+    "by": "agent:opencode",
+    "timestamp": "2026-06-17T03:45:33Z"
+  },
+  "intent": {
+    "summary": "clarify auto-capture works on plain git commit via hook",
+    "origin": "human"
+  },
+  "context": {
+    "branch": "master"
+  }
+}
