@@ -58,6 +58,7 @@ type Context struct {
 	Ticket string `json:"ticket,omitempty" yaml:"ticket,omitempty"`
 	Prompt string `json:"prompt,omitempty" yaml:"prompt,omitempty"`
 	Model  string `json:"model,omitempty" yaml:"model,omitempty"`
+	Branch string `json:"branch,omitempty" yaml:"branch,omitempty"`
 }
 
 type Record struct {
@@ -102,6 +103,10 @@ func (r *Record) SetContext(ticket, prompt, model string) {
 		Prompt: prompt,
 		Model:  model,
 	}
+}
+
+func (r *Record) SetGitContext(branch string) {
+	r.Context.Branch = branch
 }
 
 func (r *Record) Validate() error {

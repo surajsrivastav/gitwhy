@@ -105,6 +105,40 @@ func TestSetContext(t *testing.T) {
 	}
 }
 
+func TestSetGitContext(t *testing.T) {
+	record := NewRecord(TargetCommit, "abc")
+	record.SetGitContext("feature/BLUE-123-auth")
+
+	if record.Context.Branch != "feature/BLUE-123-auth" {
+		t.Errorf("expected branch, got %q", record.Context.Branch)
+	}
+
+	record.SetGitContext("")
+	if record.Context.Branch != "" {
+		t.Error("expected branch to be cleared")
+	}
+}
+
+func TestMarshalUnmarshalBranch(t *testing.T) {
+	original := NewRecord(TargetCommit, "abc123")
+	original.SetContext("JIRA-42", "prompt", "gpt-4")
+	original.SetGitContext("feature/TICKET-321-login")
+
+	data, err := original.Marshal()
+	if err != nil {
+		t.Fatalf("Marshal() error = %v", err)
+	}
+
+	restored, err := Unmarshal(data)
+	if err != nil {
+		t.Fatalf("Unmarshal() error = %v", err)
+	}
+
+	if restored.Context.Branch != "feature/TICKET-321-login" {
+		t.Errorf("branch mismatch: %q", restored.Context.Branch)
+	}
+}
+
 func TestValidate(t *testing.T) {
 	tests := []struct {
 		name    string

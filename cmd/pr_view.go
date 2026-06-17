@@ -93,6 +93,9 @@ func printWhyPanel(record *provenance.Record) {
 	if record.Context.Ticket != "" {
 		fmt.Printf("  ticket:  %s\n", record.Context.Ticket)
 	}
+	if record.Context.Branch != "" {
+		fmt.Printf("  branch:  %s\n", record.Context.Branch)
+	}
 	fmt.Println(strings.Repeat("─", 50))
 }
 

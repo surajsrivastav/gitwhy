@@ -109,6 +109,7 @@ configured storage backend.`,
 				}
 			}
 
+			intentSet := commitFlag.intent != ""
 			record.SetIntent(
 				commitFlag.intent,
 				provenance.OriginType(originStr),
@@ -121,7 +122,10 @@ configured storage backend.`,
 				model = resolveModel()
 			}
 
+			ticketSet := commitFlag.ticket != ""
 			record.SetContext(commitFlag.ticket, commitFlag.prompt, model)
+
+			autoFillContext(record, repoPath, intentSet, ticketSet)
 
 			factory := storage.NewFactory()
 			factory.Register("git-notes", storage.NewGitNotesBackend(repoPath))

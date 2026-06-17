@@ -79,16 +79,20 @@ func printFullProvenance(record *provenance.Record) {
 	}
 	fmt.Println()
 
-	if record.Context.Ticket != "" || record.Context.Prompt != "" || record.Context.Model != "" {
+	if record.Context.Ticket != "" || record.Context.Prompt != "" || record.Context.Model != "" ||
+		record.Context.Branch != "" {
 		fmt.Println("  context:")
 		if record.Context.Ticket != "" {
-			fmt.Printf("    ticket:  %s\n", record.Context.Ticket)
+			fmt.Printf("    ticket:   %s\n", record.Context.Ticket)
 		}
 		if record.Context.Prompt != "" {
-			fmt.Printf("    prompt:  %s\n", record.Context.Prompt)
+			fmt.Printf("    prompt:   %s\n", record.Context.Prompt)
 		}
 		if record.Context.Model != "" {
-			fmt.Printf("    model:   %s\n", record.Context.Model)
+			fmt.Printf("    model:    %s\n", record.Context.Model)
+		}
+		if record.Context.Branch != "" {
+			fmt.Printf("    branch:   %s\n", record.Context.Branch)
 		}
 	}
 }

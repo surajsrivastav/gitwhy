@@ -78,3 +78,12 @@ Produces a drift report with severity, affected lines, and recommendations.
 - Session tracking (`ghw start`) to capture model at coding time
 - Richer agent detection via parent process or config directory inspection
 - Git trailer integration for model info in commit message body
+
+### Nice-to-Have: Changed Files & Diff Stats
+
+Auto-capture the list of changed files and diff statistics (insertions/deletions)
+in the provenance record. Git already stores this information in the commit
+object, so the marginal value is low. However, inline capture could enable
+faster queries and richer context without resolving the commit diff. Files
+would be captured via `git diff-tree --root --name-only HEAD` and stats via
+`git diff-tree --root --shortstat HEAD`.
