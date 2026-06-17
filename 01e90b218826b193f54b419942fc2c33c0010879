@@ -1,0 +1,29 @@
+{
+  "schema": "gitwhy/v1",
+  "target": {
+    "type": "commit",
+    "ref": "01e90b218826b193f54b419942fc2c33c0010879"
+  },
+  "attribution": {
+    "by": "agent:opencode",
+    "timestamp": "2026-06-17T03:19:15Z"
+  },
+  "intent": {
+    "summary": "auto-context extraction from branch and commit message",
+    "origin": "spec"
+  },
+  "context": {
+    "branch": "master",
+    "files": [
+      "PRD.md",
+      "cmd/commit.go",
+      "cmd/context.go",
+      "cmd/context_test.go",
+      "cmd/pr_view.go",
+      "cmd/why.go",
+      "pkg/provenance/schema.go",
+      "pkg/provenance/schema_test.go"
+    ],
+    "diff_stats": "8 files changed, 426 insertions(+), 4 deletions(-)"
+  }
+}
