@@ -1,0 +1,18 @@
+{
+  "schema": "gitwhy/v1",
+  "target": {
+    "type": "commit",
+    "ref": "c040c648a6eb84e9f210ad14337dd0fbf14be541"
+  },
+  "attribution": {
+    "by": "agent:opencode",
+    "timestamp": "2026-06-17T03:41:20Z"
+  },
+  "intent": {
+    "summary": "add fallback install method for go build",
+    "origin": "human"
+  },
+  "context": {
+    "branch": "master"
+  }
+}
