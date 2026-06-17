@@ -4,14 +4,61 @@ A CLI tool that wraps the GitHub CLI (`gh`) with provenance and intent tracking,
 
 Every commit records structured metadata: who (or what) authored it, why it was made, what spec or prompt drove it, and which AI model was involved.
 
-## Features
+## Commands
 
-- **Provenance Recording** — Captures attribution, intent, spec references, and AI model info with every commit
-- **Model Auto-Detection** — Automatically detects the active AI model from environment variables at commit time
-- **GitHub Integration** — Wraps `gh` CLI seamlessly; all GitHub commands still work
-- **Storage Backends** — Pluggable backends (git-notes or file-based storage)
-- **Drift Detection** — Detects when tracked spec files have changed after code generation
-- **Audit & Export** — Query and export provenance records for compliance and analysis
+| Command | Description |
+|---------|-------------|
+| `ghw commit` | Commit with provenance recording (auto-captures model, ticket, intent) |
+| `ghw init` | Initialize gitwhy in a repository (installs post-commit hook) |
+| `ghw why <ref>` | Show full provenance record for a commit |
+| `ghw log [--why]` | Show commit log with optional intent annotations |
+| `ghw diff` | Show diff with optional drift detection |
+| `ghw config get/set` | View or modify `.gitwhy/config.yaml` |
+| `ghw pr create/view/list` | PR operations with provenance flags |
+| `ghw audit export/summary` | Export or summarize provenance records |
+
+## Auto-Capture Features (zero-friction)
+
+These run automatically on `git commit` via the post-commit hook:
+
+| Feature | What it captures | Source |
+|---------|-----------------|--------|
+| **Attribution** | Who authored the change | `--by` flag or `auto_capture.default_by` in config |
+| **Model** | AI model active at commit time | `$ANTHROPIC_MODEL`, `$OPENAI_MODEL`, `$CLAUDE_MODEL`, `$GITHUB_MODEL`, `$AI_MODEL` |
+| **Ticket** | Ticket/issue reference from branch name | Parsed from branch via `[A-Z]+-\d+` regex |
+| **Intent** | One-line summary of changes | LLM summary (default `llm` CLI) or conventional commit parsing |
+| **Branch** | Git branch at commit time | `git rev-parse --abbrev-ref HEAD` |
+| **Commit hash** | Target commit | `git rev-parse HEAD` |
+
+## Explicit Flags
+
+Override or supplement auto-capture with `ghw commit`:
+
+| Flag | Description |
+|------|-------------|
+| `--by` | Attribution: `human`, `copilot`, `agent:<name>` |
+| `--intent` | Description of why the change was made |
+| `--origin` | Origin type: `human`, `spec`, `prompt`, `template`, `upstream` |
+| `--ticket` | Ticket or issue reference |
+| `--spec` | Reference to the spec driving the change |
+| `--spec-hash` | Hash of spec content at generation time |
+| `--prompt` | Prompt used (if AI-generated) |
+| `--model` | Model name (overrides auto-detection) |
+| `-m / --message` | Commit message |
+
+## Configuration
+
+```yaml
+# .gitwhy/config.yaml
+backend: git-notes           # storage backend: git-notes | file
+auto_capture:
+  enabled: true
+  default_by: agent:opencode  # default attribution for auto-capture
+summary:
+  enabled: true               # LLM-generated intent summary
+  command: llm                # any CLI accepting a prompt as last arg
+  mode: filenames              # filenames | diff
+```
 
 ## Installation
 
@@ -58,51 +105,11 @@ ghw --help
 
 ## Quick Start
 
-### Initialize gitwhy in a repository
-
 ```bash
 cd your-repo
-ghw init
-```
-
-This creates a `.gitwhy/` config directory.
-
-### Commit with provenance
-
-```bash
-ghw commit --message "Add feature" --by copilot --intent "Implement login flow" --model "claude-sonnet-4"
-```
-
-Flags are optional; `ghw commit` auto-detects the AI model from environment variables.
-
-### View commit provenance
-
-```bash
-ghw why <commit-hash>
-```
-
-### List commits with intent annotations
-
-```bash
-ghw log
-```
-
-### Audit provenance records
-
-```bash
-ghw audit export      # Export all provenance records
-ghw audit summary     # Summarize provenance data
-```
-
-## Configuration
-
-Configuration lives in `.gitwhy/config.yaml`:
-
-```yaml
-storage:
-  backend: git-notes  # or 'file'
-summary:
-  enabled: true
+ghw init                           # one-time setup
+git add . && git commit -m "feat: add login"    # commits as usual
+ghw why HEAD                       # see provenance
 ```
 
 ## Project Structure
