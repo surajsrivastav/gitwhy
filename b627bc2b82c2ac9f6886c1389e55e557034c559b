@@ -1,0 +1,18 @@
+{
+  "schema": "gitwhy/v1",
+  "target": {
+    "type": "commit",
+    "ref": "b627bc2b82c2ac9f6886c1389e55e557034c559b"
+  },
+  "attribution": {
+    "by": "agent:opencode",
+    "timestamp": "2026-06-17T03:42:24Z"
+  },
+  "intent": {
+    "summary": "fix install instructions — use make build + copy, not make install",
+    "origin": "human"
+  },
+  "context": {
+    "branch": "master"
+  }
+}
