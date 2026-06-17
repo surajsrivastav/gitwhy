@@ -1,0 +1,16 @@
+{
+  "schema": "gitwhy/v1",
+  "target": {
+    "type": "commit",
+    "ref": "59795c2b2844fe15d01618e9080deecff3f90524"
+  },
+  "attribution": {
+    "by": "agent:test5",
+    "timestamp": "2026-06-17T02:39:58Z"
+  },
+  "intent": {
+    "summary": "interactive prompt test",
+    "origin": "spec"
+  },
+  "context": {}
+}
