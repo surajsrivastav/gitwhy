@@ -1,0 +1,18 @@
+{
+  "schema": "gitwhy/v1",
+  "target": {
+    "type": "commit",
+    "ref": "566495fc2b54c9f840397e689c170315528af6a4"
+  },
+  "attribution": {
+    "by": "agent:opencode",
+    "timestamp": "2026-06-17T03:51:55Z"
+  },
+  "intent": {
+    "summary": "add prompt capture to PRD nice-to-haves",
+    "origin": "human"
+  },
+  "context": {
+    "branch": "master"
+  }
+}
