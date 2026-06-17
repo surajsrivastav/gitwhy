@@ -1,0 +1,18 @@
+{
+  "schema": "gitwhy/v1",
+  "target": {
+    "type": "commit",
+    "ref": "29d75a0b749c7c94218bc19db34956a9847aacc5"
+  },
+  "attribution": {
+    "by": "agent:test",
+    "timestamp": "2026-06-17T02:39:39Z"
+  },
+  "intent": {
+    "summary": "explicit model overrides env",
+    "origin": "spec"
+  },
+  "context": {
+    "model": "gpt-5"
+  }
+}
