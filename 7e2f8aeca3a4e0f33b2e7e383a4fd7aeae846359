@@ -1,0 +1,18 @@
+{
+  "schema": "gitwhy/v1",
+  "target": {
+    "type": "commit",
+    "ref": "7e2f8aeca3a4e0f33b2e7e383a4fd7aeae846359"
+  },
+  "attribution": {
+    "by": "agent:opencode",
+    "timestamp": "2026-06-17T03:00:27Z"
+  },
+  "intent": {
+    "summary": "",
+    "origin": "spec"
+  },
+  "context": {
+    "model": "opencode/big-pickle"
+  }
+}
