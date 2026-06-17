@@ -88,6 +88,26 @@ faster queries and richer context without resolving the commit diff. Files
 would be captured via `git diff-tree --root --name-only HEAD` and stats via
 `git diff-tree --root --shortstat HEAD`.
 
+### Nice-to-Have: Prompt Capture
+
+Capture the prompt the user supplied to the AI assistant during the coding
+session and store it (possibly in compressed/truncated form) in the provenance
+record's `context.prompt` field.
+
+**Challenges:**
+- Prompts can be very long (thousands of tokens) — storing the full text
+  bloats the record and makes storage/query slower
+- Capturing the prompt requires editor/IDE integration or a session-tracking
+  `ghw start` command — it's not available at commit time
+- Truncation (e.g. first 200 chars) or hashing preserves some provenance
+  without the size cost
+
+**Possible approach:**
+- `ghw start --prompt "add login with OAuth"` stores the prompt in
+  `.gitwhy/session.yaml`; subsequent commits inherit it
+- Auto-truncate to 500 characters with a `...` suffix indicator
+- Store a SHA-256 hash alongside the truncated prompt for integrity checks
+
 ### 6. LLM-Generated Summary
 
 When `summary.enabled` is `true` (default) in `.gitwhy/config.yaml`, the
