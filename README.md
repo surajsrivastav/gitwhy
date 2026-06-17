@@ -25,23 +25,28 @@ Every commit records structured metadata: who (or what) authored it, why it was 
 **Build and install:**
 
 ```bash
-git clone https://github.com/anomalyco/gitwhy.git
+git clone https://github.com/surajsrivastav/gitwhy.git
 cd gitwhy
-make install
+make build
 ```
 
-This installs `ghw` to your `$GOBIN` (usually `~/go/bin`). Add it to your `$PATH` if needed:
+Then copy the `ghw` binary to a directory in your `$PATH`:
 
 ```bash
-export PATH="$HOME/go/bin:$PATH"
+# macOS (Homebrew)
+cp ghw /opt/homebrew/bin/
+
+# Linux / macOS
+sudo cp ghw /usr/local/bin/
+
+# Any (add to PATH)
+mkdir -p ~/bin && cp ghw ~/bin && export PATH="$HOME/bin:$PATH"
 ```
 
-If `make install` does not produce a binary (known issue on some Go versions), build directly to a directory in your PATH:
+Verify:
 
 ```bash
-go build -o /opt/homebrew/bin/ghw .   # macOS Homebrew
-# or
-go build -o /usr/local/bin/ghw .       # Linux/macOS
+ghw version
 ```
 
 ### Verify Installation
