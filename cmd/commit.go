@@ -143,7 +143,7 @@ func init() {
 	commitCmd.Flags().StringVar(&commitFlag.origin, "origin", "", "Origin type (human, spec, prompt, template, upstream)")
 	commitCmd.Flags().StringVar(&commitFlag.ticket, "ticket", "", "Ticket or issue reference")
 	commitCmd.Flags().StringVar(&commitFlag.prompt, "prompt", "", "Prompt used (if AI-generated)")
-	commitCmd.Flags().StringVar(&commitFlag.model, "model", "", "Model name (if AI-generated)")
+	commitCmd.Flags().StringVar(&commitFlag.model, "model", "", "Model name (auto-detected from environment if omitted; captures the model active at commit time)")
 }
 
 func hasProvenanceFlags() bool {
