@@ -12,6 +12,10 @@
 
 Git shows you *what* changed. gitwhy remembers *why*.
 
+<a href="https://surajsrivastav.github.io/gitwhy/demo.html">
+  <img src="https://img.shields.io/badge/▶_live_demo-1a1b1e?style=for-the-badge" alt="Live demo">
+</a>
+
 ---
 
 ## The problem
