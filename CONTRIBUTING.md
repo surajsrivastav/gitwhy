@@ -4,7 +4,7 @@
 
 1. Clone the repo:
    ```sh
-   git clone https://github.com/anomalyco/gitwhy.git
+   git clone https://github.com/surajsrivastav/gitwhy.git
    cd gitwhy
    ```
 2. Build:

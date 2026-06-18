@@ -2,4 +2,6 @@ ghw
 coverage.out
 coverage.html
 report.json
+test_file
+*.docx
 .gitwhy/
