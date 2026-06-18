@@ -1,0 +1,174 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>gitwhy demo</title>
+<style>
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0 }
+  html, body { height: 100%; background: #111213 }
+  body { display: flex; align-items: center; justify-content: center; padding: 2rem; font-family: 'JetBrains Mono', 'Fira Code', 'Cascadia Code', ui-monospace, monospace }
+
+  .window { width: 680px; border-radius: 10px; overflow: hidden; box-shadow: 0 24px 80px rgba(0,0,0,.6) }
+  .titlebar { background: #2c2d30; padding: 0 14px; height: 36px; display: flex; align-items: center; gap: 8px }
+  .dot { width: 12px; height: 12px; border-radius: 50%; flex-shrink: 0 }
+  .title { flex: 1; text-align: center; color: #666; font-size: 12px; letter-spacing: .3px }
+  .body { background: #1a1b1e; padding: 22px 26px 26px; min-height: 300px; font-size: 13px; line-height: 1.65 }
+
+  .line { display: flex; align-items: baseline; gap: 0; margin-bottom: 1px; white-space: pre }
+  .ps   { color: #5c8a3c }
+  .cmd  { color: #e8e8e2 }
+  .out  { color: #9da3ae }
+  .hi   { color: #79c0ff }
+  .ok   { color: #56d364 }
+  .warn { color: #e3b341 }
+  .dim  { color: #555 }
+
+  .cursor { display: inline-block; width: 8px; height: 14px; background: #e8e8e2; vertical-align: middle; animation: blink .85s step-end infinite; margin-left: 1px }
+  @keyframes blink { 50% { opacity: 0 } }
+
+  .spacer { height: 12px }
+
+  .steps { display: flex; gap: 6px; padding: 14px 26px 18px; background: #1a1b1e }
+  .step  { height: 3px; flex: 1; border-radius: 2px; background: #2c2d30; transition: background .4s }
+  .step.done   { background: #2e5c20 }
+  .step.active { background: #5c8a3c }
+</style>
+</head>
+<body>
+<div class="window">
+  <div class="titlebar">
+    <div class="dot" style="background:#ff5f57"></div>
+    <div class="dot" style="background:#febc2e"></div>
+    <div class="dot" style="background:#28c840"></div>
+    <div class="title">gitwhy — the context layer for git</div>
+  </div>
+  <div class="body" id="body"></div>
+  <div class="steps" id="steps"></div>
+</div>
+
+<script>
+const H = (tag, cls, html) => { const el = document.createElement(tag); if (cls) el.className = cls; if (html) el.innerHTML = html; return el }
+
+const scenes = [
+  { label: 'ghw init', lines: [
+    { cmd: true,  ps: '~/myapp', text: 'ghw init' },
+    { text: '<span class="ok">✓ gitwhy initialized</span> <span class="dim">in /myapp/.gitwhy/config.yaml</span>' },
+    { text: '  backend: <span class="hi">git-notes</span>' },
+    { text: '  hook:    <span class="ok">post-commit hook installed</span>' },
+    { spacer: true },
+    { cmd: true,  ps: '~/myapp', text: 'git checkout -b feature/AUTH-101-add-login' },
+    { text: 'Switched to a new branch <span class="hi">\'feature/AUTH-101-add-login\'</span>' },
+  ]},
+  { label: 'git commit', lines: [
+    { cmd: true,  ps: '~/myapp', text: 'git commit -m "feat: add login handler"' },
+    { text: '[AUTH-101 <span class="hi">f0252ba</span>] feat: add login handler' },
+    { text: ' 2 files changed, 12 insertions(+)' },
+    { text: '  <span class="ok">✓</span> <span class="dim">gitwhy: provenance recorded</span> <span style="font-size:11px;background:#0d3d1a;color:#56d364;padding:1px 6px;border-radius:3px">git-notes</span>' },
+  ]},
+  { label: 'ghw why', lines: [
+    { cmd: true,  ps: '~/myapp', text: 'ghw why HEAD' },
+    { spacer: true },
+    { text: '  <span class="dim">gitwhy provenance record</span>' },
+    { text: '  <span class="dim">─────────────────────────────</span>' },
+    { text: '  schema:  <span class="dim">gitwhy/v1</span>' },
+    { text: '  intent:  <span class="hi">add login handler</span>' },
+    { text: '  origin:  <span class="warn">spec</span>' },
+    { spacer: true },
+    { text: '  context:' },
+    { text: '    ticket: <span class="hi">AUTH-101</span>' },
+    { text: '    branch: <span class="dim">feature/AUTH-101-add-login</span>' },
+    { text: '    model:  <span class="dim">claude-sonnet-4-5</span>' },
+  ]},
+  { label: 'ghw log --why', lines: [
+    { cmd: true,  ps: '~/myapp', text: 'ghw log --why' },
+    { text: '<span class="hi">7ac717f</span> fix: hash passwords with bcrypt' },
+    { text: '<span class="hi">f0252ba</span> feat: add login handler' },
+    { text: '<span class="hi">1fad1eb</span> chore: initial commit' },
+    { text: '  <span class="dim">├─</span> intent: <span class="ok">hash passwords with bcrypt</span>' },
+    { text: '  <span class="dim">├─</span> intent: <span class="ok">add login handler</span>' },
+    { spacer: true },
+    { cmd: true,  ps: '~/myapp', text: 'ghw audit export' },
+    { text: '[' },
+    { text: '  { <span class="warn">"intent"</span>: <span class="ok">"hash passwords with bcrypt"</span>, <span class="warn">"ticket"</span>: <span class="ok">"AUTH-101"</span> },' },
+    { text: '  { <span class="warn">"intent"</span>: <span class="ok">"add login handler"</span>,            <span class="warn">"ticket"</span>: <span class="ok">"AUTH-101"</span> }' },
+    { text: ']' },
+  ]},
+]
+
+const body  = document.getElementById('body')
+const steps = document.getElementById('steps')
+let sceneIdx = 0, timer = null
+
+scenes.forEach((_, i) => {
+  const d = H('div', 'step')
+  steps.appendChild(d)
+})
+
+function updateSteps(idx) {
+  steps.querySelectorAll('.step').forEach((el, i) => {
+    el.className = 'step' + (i < idx ? ' done' : i === idx ? ' active' : '')
+  })
+}
+
+function typeLines(lines, idx, resolve) {
+  if (idx >= lines.length) { resolve(); return }
+  const l = lines[idx]
+  const delay = idx === 0 ? 0 : l.spacer ? 80 : l.cmd ? 260 : 55
+
+  setTimeout(() => {
+    if (l.spacer) { body.appendChild(H('div', 'spacer')); }
+    else if (l.cmd) {
+      const row = H('div', 'line')
+      row.appendChild(H('span', 'ps', l.ps + ' $ '))
+      const cmdSpan = H('span', 'cmd')
+      row.appendChild(cmdSpan)
+      body.appendChild(row)
+      typeCmd(cmdSpan, l.text, () => typeLines(lines, idx + 1, resolve))
+      return
+    } else {
+      body.appendChild(H('div', 'line out', l.text))
+    }
+    typeLines(lines, idx + 1, resolve)
+  }, delay)
+}
+
+function typeCmd(el, text, done) {
+  let i = 0
+  const cur = H('span', 'cursor')
+  el.appendChild(cur)
+  const iv = setInterval(() => {
+    if (i < text.length) {
+      el.insertBefore(document.createTextNode(text[i++]), cur)
+    } else {
+      clearInterval(iv)
+      setTimeout(done, 400)
+    }
+  }, 28)
+}
+
+function runScene(idx) {
+  body.innerHTML = ''
+  updateSteps(idx)
+  const scene = scenes[idx]
+  const cur = H('span', 'cursor')
+
+  new Promise(resolve => typeLines(scene.lines, 0, resolve)).then(() => {
+    const row = H('div', 'line')
+    const ps = H('span', 'ps', scenes[(idx + 1) % scenes.length].lines[0].ps + ' $ ')
+    row.appendChild(ps)
+    row.appendChild(cur)
+    body.appendChild(row)
+
+    clearTimeout(timer)
+    timer = setTimeout(() => {
+      sceneIdx = (idx + 1) % scenes.length
+      runScene(sceneIdx)
+    }, 3200)
+  })
+}
+
+runScene(0)
+</script>
+</body>
+</html>
