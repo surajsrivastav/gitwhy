@@ -8,11 +8,28 @@
 [![Go Report Card](https://goreportcard.com/badge/github.com/surajsrivastav/gitwhy?style=flat-square)](https://goreportcard.com/report/github.com/surajsrivastav/gitwhy)
 [![Coverage](https://codecov.io/gh/surajsrivastav/gitwhy/branch/master/graph/badge.svg)](https://codecov.io/gh/surajsrivastav/gitwhy)
 
-Your `git log` shows *what* changed. gitwhy captures *why*.
+**The context layer for Git.** gitwhy captures the reasoning behind every commit — the AI model, the ticket, the intent, the origin — so your team can review, debug, and onboard without guessing.
 
-AI tools write a lot of your code now. Copilot, Claude, Cursor — six months later, nobody can tell which model wrote what, what ticket drove the change, or whether a human even looked at it. `git blame` just points at a name and a date.
+Git shows you *what* changed. gitwhy remembers *why*.
 
-gitwhy fixes that. After a one-time `ghw init`, every `git commit` silently records the full picture in the background: which AI model was involved, which ticket it was for, what the intent was, and whether a human or a spec drove it. No new commands. No new habits. Plain `git commit` stays plain.
+---
+
+## The problem
+
+AI tools write a lot of your code now. Copilot, Claude, Cursor — every commit is a mix of human judgment and AI output. Six months later, nobody can tell which model produced what, what ticket drove the change, or whether a human even looked at it.
+
+`git blame` points at a name and a date. That's not enough anymore.
+
+## The solution
+
+One-time setup. Zero new habits. After `ghw init`, every `git commit` silently records the full picture in the background:
+
+- Which AI model was involved
+- Which ticket it was for
+- What the intent was
+- Whether a human, a spec, or a prompt drove it
+
+Plain `git commit` stays plain. The context is just there when you need it.
 
 ## Quickstart
 
@@ -20,24 +37,13 @@ gitwhy fixes that. After a one-time `ghw init`, every `git commit` silently reco
 brew install surajsrivastav/tap/ghw   # or see other install options below
 
 cd your-repo
-ghw init                              # one-time setup, installs a post-commit hook
+ghw init                              # one-time setup
 
 git add . && git commit -m "feat: add login"   # nothing changes here
-ghw why HEAD                          # see what gitwhy just captured
+ghw why HEAD                          # see what gitwhy captured
 ```
 
-That's it. From here on every commit carries its own provenance record.
-
-## What gets recorded
-
-| When you commit from... | gitwhy captures... |
-|---|---|
-| `feature/PROJ-42-login` | Ticket `PROJ-42` — parsed from branch name |
-| `feat: add login handler` | Intent `"add login handler"` — from the commit message, or summarised by your LLM CLI |
-| ...with Claude open | Model `claude-sonnet-4` — auto-detected from `$CLAUDE_MODEL` |
-| ...and Copilot running | Attribution `copilot` — from `--by` or config |
-
-The result looks like this:
+Output:
 
 ```
 intent:    add login handler
@@ -48,7 +54,24 @@ context:
     model:    claude-sonnet-4
 ```
 
+## What gets captured
+
+| When you commit from... | gitwhy records... |
+|---|---|
+| `feature/PROJ-42-login` | Ticket `PROJ-42` — parsed from branch name |
+| `feat: add login handler` | Intent — from the commit message, or summarised by your LLM CLI |
+| ...with Claude open | Model `claude-sonnet-4` — auto-detected from `$CLAUDE_MODEL` |
+| ...with Copilot running | Attribution `copilot` — from `--by` or your config |
+
 Stored in git-notes alongside the commit. No extra files, no external service, no database.
+
+## Why teams use it
+
+**Code review** — reviewers see the rationale, not just the diff. No more "what was this for?" threads.
+
+**Debugging** — trace a broken line back to its intent, its ticket, and the model that wrote it. In one command.
+
+**Onboarding** — new engineers understand past trade-offs without hunting through Slack or Notion.
 
 ## Commands
 
@@ -57,14 +80,14 @@ Stored in git-notes alongside the commit. No extra files, no external service, n
 | Set up gitwhy in a repo | `ghw init` |
 | Commit with explicit attribution | `ghw commit --by copilot --ticket PROJ-42` |
 | See why a commit was made | `ghw why HEAD` |
-| Browse history with provenance | `ghw log --why` |
+| Browse history with context | `ghw log --why` |
+| Export all records to JSON | `ghw audit export` |
 | Turn off LLM summaries | `ghw config set summary.enabled false` |
 | Switch LLM command | `ghw config set summary.command claude` |
-| Export all records to JSON | `ghw audit export` |
 
 ## Optional flags
 
-Everything is auto-detected, but you can override any field when committing:
+Everything is auto-detected. Override any field when you need to:
 
 | Flag | What it sets |
 |---|---|
