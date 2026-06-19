@@ -11,7 +11,7 @@ import (
 )
 
 var (
-	initNoHook   bool
+	initNoHook    bool
 	initDefaultBy string
 )
 
@@ -28,15 +28,33 @@ post-commit hook for automatic provenance capture after every commit.`,
 			return fmt.Errorf("not in a git repository: %w", err)
 		}
 
-		cfg := config.DefaultConfig()
+		// Load existing config if present, otherwise start from defaults.
+		cfg, err := config.Load(repoPath)
+		if err != nil {
+			return fmt.Errorf("load existing config: %w", err)
+		}
 		cfg.RepoPath = repoPath
-		cfg.Backend = config.BackendGitNotes
-		cfg.GitNotes = &config.GitNotesConfig{Enabled: true}
+
+		// Ensure sensible defaults without overwriting existing user settings.
+		if cfg.Backend == "" {
+			cfg.Backend = config.BackendGitNotes
+		}
+		if cfg.GitNotes == nil {
+			cfg.GitNotes = &config.GitNotesConfig{Enabled: true}
+		}
 
 		if !initNoHook {
-			cfg.AutoCapture = &config.AutoCaptureConfig{
-				Enabled:   true,
-				DefaultBy: initDefaultBy,
+			if cfg.AutoCapture == nil {
+				cfg.AutoCapture = &config.AutoCaptureConfig{
+					Enabled:   true,
+					DefaultBy: initDefaultBy,
+				}
+			} else {
+				// Respect existing AutoCapture.Enabled unless user explicitly requests no-hook.
+				cfg.AutoCapture.Enabled = true
+				if initDefaultBy != "" {
+					cfg.AutoCapture.DefaultBy = initDefaultBy
+				}
 			}
 		}
 

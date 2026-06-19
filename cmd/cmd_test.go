@@ -393,6 +393,54 @@ func TestInitCmdAlreadyInitialized(t *testing.T) {
 	initCmd.RunE(initCmd, nil)
 }
 
+func TestInitPreservesSummary(t *testing.T) {
+	tmpDir := t.TempDir()
+	gitCmds := [][]string{
+		{"init"},
+		{"config", "user.email", "test@test.com"},
+		{"config", "user.name", "Test"},
+	}
+	for _, args := range gitCmds {
+		cmd := exec.Command("git", append([]string{"-C", tmpDir}, args...)...)
+		if out, err := cmd.CombinedOutput(); err != nil {
+			t.Fatalf("git %v: %v\n%s", args, err, out)
+		}
+	}
+
+	// create an existing config with a summary block we expect preserved
+	cfgDir := filepath.Join(tmpDir, ".gitwhy")
+	os.MkdirAll(cfgDir, 0755)
+	cfg := `backend: git-notes
+auto_capture:
+  enabled: true
+summary:
+  enabled: true
+  command: mycli
+  mode: filenames
+`
+	if err := os.WriteFile(filepath.Join(cfgDir, "config.yaml"), []byte(cfg), 0644); err != nil {
+		t.Fatalf("write config: %v", err)
+	}
+
+	origWd, _ := os.Getwd()
+	os.Chdir(tmpDir)
+	defer os.Chdir(origWd)
+
+	if err := initCmd.RunE(initCmd, nil); err != nil {
+		t.Fatalf("initCmd.RunE() error = %v", err)
+	}
+
+	// reload file and ensure summary.command preserved
+	b, err := os.ReadFile(filepath.Join(cfgDir, "config.yaml"))
+	if err != nil {
+		t.Fatalf("read config: %v", err)
+	}
+	s := string(b)
+	if !strings.Contains(s, "command: mycli") {
+		t.Errorf("expected summary.command to be preserved, got:\n%s", s)
+	}
+}
+
 func TestInitCmdNotInGitRepo(t *testing.T) {
 	tmpDir := t.TempDir()
 
