@@ -1487,6 +1487,176 @@ func TestConfigResetCmd(t *testing.T) {
 	}
 }
 
+// --- Notes sharing tests ---
+
+// configureNotesSharing: remote exists → adds push + fetch refspecs.
+func TestConfigureNotesSharingAddsRefspecs(t *testing.T) {
+	// Create a bare "remote" repo and a local repo that has it as origin.
+	remoteDir := t.TempDir()
+	localDir := t.TempDir()
+
+	runGit := func(dir string, args ...string) {
+		t.Helper()
+		cmd := exec.Command("git", append([]string{"-C", dir}, args...)...)
+		if out, err := cmd.CombinedOutput(); err != nil {
+			t.Fatalf("git %v: %v\n%s", args, err, out)
+		}
+	}
+	gitOut := func(dir string, args ...string) string {
+		t.Helper()
+		out, err := exec.Command("git", append([]string{"-C", dir}, args...)...).CombinedOutput()
+		if err != nil {
+			t.Fatalf("git %v: %v\n%s", args, err, out)
+		}
+		return strings.TrimSpace(string(out))
+	}
+
+	runGit(remoteDir, "init", "--bare")
+	runGit(localDir, "init")
+	runGit(localDir, "config", "user.email", "test@test.com")
+	runGit(localDir, "config", "user.name", "Test")
+	runGit(localDir, "remote", "add", "origin", remoteDir)
+
+	if err := configureNotesSharing(localDir, "origin"); err != nil {
+		t.Fatalf("configureNotesSharing() error = %v", err)
+	}
+
+	pushSpec := gitOut(localDir, "config", "--get-all", "remote.origin.push")
+	fetchSpec := gitOut(localDir, "config", "--get-all", "remote.origin.fetch")
+
+	if !strings.Contains(pushSpec, "refs/notes/gitwhy") {
+		t.Errorf("expected push refspec for refs/notes/gitwhy, got: %s", pushSpec)
+	}
+	if !strings.Contains(fetchSpec, "refs/notes/gitwhy") {
+		t.Errorf("expected fetch refspec for refs/notes/gitwhy, got: %s", fetchSpec)
+	}
+}
+
+// configureNotesSharing: already configured → idempotent, no duplicates.
+func TestConfigureNotesSharingIdempotent(t *testing.T) {
+	remoteDir := t.TempDir()
+	localDir := t.TempDir()
+
+	runGit := func(dir string, args ...string) {
+		t.Helper()
+		cmd := exec.Command("git", append([]string{"-C", dir}, args...)...)
+		if out, err := cmd.CombinedOutput(); err != nil {
+			t.Fatalf("git %v: %v\n%s", args, err, out)
+		}
+	}
+	runGit(remoteDir, "init", "--bare")
+	runGit(localDir, "init")
+	runGit(localDir, "remote", "add", "origin", remoteDir)
+
+	if err := configureNotesSharing(localDir, "origin"); err != nil {
+		t.Fatalf("first configureNotesSharing() error = %v", err)
+	}
+	if err := configureNotesSharing(localDir, "origin"); err != nil {
+		t.Fatalf("second configureNotesSharing() error = %v", err)
+	}
+
+	// Should have exactly one notes-specific push/fetch refspec each (no duplicates).
+	countNotesSpecs := func(dir, direction string) int {
+		out, _ := exec.Command("git", "-C", dir, "config", "--get-all", "remote.origin."+direction).CombinedOutput()
+		count := 0
+		for _, l := range strings.Split(strings.TrimSpace(string(out)), "\n") {
+			if strings.Contains(l, "refs/notes/gitwhy") {
+				count++
+			}
+		}
+		return count
+	}
+	if n := countNotesSpecs(localDir, "push"); n != 1 {
+		t.Errorf("expected 1 notes push refspec, got %d", n)
+	}
+	if n := countNotesSpecs(localDir, "fetch"); n != 1 {
+		t.Errorf("expected 1 notes fetch refspec, got %d", n)
+	}
+}
+
+// configureNotesSharing: remote missing → returns error (not panic).
+func TestConfigureNotesSharingMissingRemote(t *testing.T) {
+	localDir := t.TempDir()
+	exec.Command("git", "-C", localDir, "init").CombinedOutput()
+
+	err := configureNotesSharing(localDir, "nonexistent")
+	if err == nil {
+		t.Error("expected error for missing remote")
+	}
+	if !strings.Contains(err.Error(), "nonexistent") {
+		t.Errorf("expected error to mention remote name, got: %v", err)
+	}
+}
+
+// ghw init with a valid remote configures notes sharing.
+func TestInitCmdConfiguresNotesSharing(t *testing.T) {
+	remoteDir := t.TempDir()
+	localDir := t.TempDir()
+
+	for _, args := range [][]string{{"init", "--bare"}} {
+		cmd := exec.Command("git", append([]string{"-C", remoteDir}, args...)...)
+		if out, err := cmd.CombinedOutput(); err != nil {
+			t.Fatalf("git %v: %v\n%s", args, err, out)
+		}
+	}
+	for _, args := range [][]string{
+		{"init"},
+		{"config", "user.email", "test@test.com"},
+		{"config", "user.name", "Test"},
+		{"remote", "add", "origin", remoteDir},
+	} {
+		cmd := exec.Command("git", append([]string{"-C", localDir}, args...)...)
+		if out, err := cmd.CombinedOutput(); err != nil {
+			t.Fatalf("git %v: %v\n%s", args, err, out)
+		}
+	}
+
+	origWd, _ := os.Getwd()
+	os.Chdir(localDir)
+	defer os.Chdir(origWd)
+
+	// Reset flags to defaults.
+	initRemote = "origin"
+	initNoNotesSync = false
+	t.Cleanup(func() {
+		initRemote = "origin"
+		initNoNotesSync = false
+	})
+
+	captureStdout(func() {
+		if err := initCmd.RunE(initCmd, nil); err != nil {
+			t.Errorf("initCmd.RunE() error = %v", err)
+		}
+	})
+
+	out, _ := exec.Command("git", "-C", localDir, "config", "--get-all", "remote.origin.push").CombinedOutput()
+	if !strings.Contains(string(out), "refs/notes/gitwhy") {
+		t.Errorf("expected notes push refspec after init, got: %s", out)
+	}
+}
+
+// ghw init --no-notes-sync skips remote configuration.
+func TestInitCmdNoNotesSync(t *testing.T) {
+	localDir := setupTestRepo(t)
+	origWd, _ := os.Getwd()
+	os.Chdir(localDir)
+	defer os.Chdir(origWd)
+
+	initNoNotesSync = true
+	t.Cleanup(func() { initNoNotesSync = false })
+
+	captureStdout(func() {
+		if err := initCmd.RunE(initCmd, nil); err != nil {
+			t.Errorf("initCmd.RunE() error = %v", err)
+		}
+	})
+
+	out, _ := exec.Command("git", "-C", localDir, "config", "--get-all", "remote.origin.push").CombinedOutput()
+	if strings.Contains(string(out), "refs/notes/gitwhy") {
+		t.Error("expected no notes refspec when --no-notes-sync is set")
+	}
+}
+
 func TestPrintWhyPanelWithContext(t *testing.T) {
 	record := provenance.NewRecord(provenance.TargetCommit, "abc123")
 	record.SetAttribution(provenance.AttributionCopilot)

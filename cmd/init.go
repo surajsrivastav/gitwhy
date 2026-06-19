@@ -3,17 +3,21 @@ package cmd
 import (
 	"fmt"
 	"os"
+	"os/exec"
 	"path/filepath"
 	"strings"
 
 	"github.com/spf13/cobra"
 
 	"github.com/surajsrivastav/gitwhy/pkg/config"
+	"github.com/surajsrivastav/gitwhy/pkg/storage"
 )
 
 var (
-	initNoHook    bool
-	initDefaultBy string
+	initNoHook      bool
+	initDefaultBy   string
+	initRemote      string
+	initNoNotesSync bool
 )
 
 var initCmd = &cobra.Command{
@@ -22,7 +26,11 @@ var initCmd = &cobra.Command{
 	Long: `Bootstraps gitwhy configuration in the current repository.
 
 Creates .gitwhy/config.yaml with default settings and installs a git
-post-commit hook for automatic provenance capture after every commit.`,
+post-commit hook for automatic provenance capture after every commit.
+
+Also configures the git remote so that provenance notes (refs/notes/gitwhy)
+are pushed and fetched alongside normal git push/pull, making them
+automatically shared with the whole team.`,
 	RunE: func(cmd *cobra.Command, args []string) error {
 		repoPath, err := config.FindRepoRoot()
 		if err != nil {
@@ -76,6 +84,12 @@ post-commit hook for automatic provenance capture after every commit.`,
 			}
 		}
 
+		if !initNoNotesSync {
+			if err := configureNotesSharing(repoPath, initRemote); err != nil {
+				fmt.Fprintf(os.Stderr, "  warning: notes sharing not configured: %v\n", err)
+			}
+		}
+
 		return nil
 	},
 }
@@ -83,6 +97,81 @@ post-commit hook for automatic provenance capture after every commit.`,
 func init() {
 	initCmd.Flags().BoolVar(&initNoHook, "no-hook", false, "Skip installing git post-commit hook")
 	initCmd.Flags().StringVar(&initDefaultBy, "default-by", "", "Default attribution for auto-capture (e.g. agent:opencode)")
+	initCmd.Flags().StringVar(&initRemote, "remote", "origin", "Git remote to configure for notes sharing")
+	initCmd.Flags().BoolVar(&initNoNotesSync, "no-notes-sync", false, "Skip configuring git remote for notes push/fetch")
+}
+
+// configureNotesSharing adds push and fetch refspecs for refs/notes/gitwhy to
+// the given remote so that `git push` and `git fetch` automatically sync
+// provenance notes across the team. The operation is idempotent.
+func configureNotesSharing(repoPath, remote string) error {
+	// Verify the remote exists before touching its config.
+	out, err := exec.Command("git", "-C", repoPath, "remote", "get-url", remote).CombinedOutput()
+	if err != nil {
+		return fmt.Errorf("remote %q not found — run with --no-notes-sync to skip, or set --remote to a valid remote name", remote)
+	}
+	remoteURL := strings.TrimSpace(string(out))
+
+	notesRef := storage.NotesRef // refs/notes/gitwhy
+	pushSpec := notesRef + ":" + notesRef
+	fetchSpec := "+" + notesRef + ":" + notesRef
+
+	// Read all existing push/fetch refspecs for this remote.
+	existingPush := remoteRefspecs(repoPath, remote, "push")
+	existingFetch := remoteRefspecs(repoPath, remote, "fetch")
+
+	addedPush, addedFetch := false, false
+
+	if !containsSpec(existingPush, pushSpec) {
+		if out, err := exec.Command("git", "-C", repoPath, "config", "--add",
+			"remote."+remote+".push", pushSpec).CombinedOutput(); err != nil {
+			return fmt.Errorf("set push refspec: %w\n%s", err, out)
+		}
+		addedPush = true
+	}
+
+	if !containsSpec(existingFetch, fetchSpec) {
+		if out, err := exec.Command("git", "-C", repoPath, "config", "--add",
+			"remote."+remote+".fetch", fetchSpec).CombinedOutput(); err != nil {
+			return fmt.Errorf("set fetch refspec: %w\n%s", err, out)
+		}
+		addedFetch = true
+	}
+
+	if !addedPush && !addedFetch {
+		fmt.Printf("  notes:   sharing already configured for remote %q (%s)\n", remote, remoteURL)
+		return nil
+	}
+
+	fmt.Printf("  notes:   sharing configured for remote %q (%s)\n", remote, remoteURL)
+	fmt.Printf("           git push / git fetch will now sync provenance notes\n")
+	fmt.Printf("           run `git push %s %s` to publish existing notes\n", remote, notesRef)
+	return nil
+}
+
+// remoteRefspecs returns the list of push or fetch refspecs for a remote.
+func remoteRefspecs(repoPath, remote, direction string) []string {
+	out, err := exec.Command("git", "-C", repoPath, "config", "--get-all",
+		"remote."+remote+"."+direction).CombinedOutput()
+	if err != nil {
+		return nil
+	}
+	var specs []string
+	for _, line := range strings.Split(strings.TrimSpace(string(out)), "\n") {
+		if line != "" {
+			specs = append(specs, line)
+		}
+	}
+	return specs
+}
+
+func containsSpec(specs []string, target string) bool {
+	for _, s := range specs {
+		if s == target {
+			return true
+		}
+	}
+	return false
 }
 
 const hookSignature = "# gitwhy auto-capture hook"
