@@ -2,6 +2,7 @@ package cmd
 
 import (
 	"fmt"
+	"os"
 
 	"github.com/spf13/cobra"
 	"gopkg.in/yaml.v3"
@@ -85,7 +86,36 @@ var configSetCmd = &cobra.Command{
 	},
 }
 
+var configResetCmd = &cobra.Command{
+	Use:   "reset",
+	Short: "Reset configuration to defaults",
+	Long:  `Removes the current configuration file and replaces it with defaults.`,
+	RunE: func(cmd *cobra.Command, args []string) error {
+		repoPath, err := config.FindRepoRoot()
+		if err != nil {
+			return fmt.Errorf("find repo: %w", err)
+		}
+
+		configPath := config.ConfigPath(repoPath)
+		if _, statErr := os.Stat(configPath); statErr == nil {
+			if err := os.Remove(configPath); err != nil {
+				return fmt.Errorf("remove config: %w", err)
+			}
+		}
+
+		cfg := config.DefaultConfig()
+		cfg.RepoPath = repoPath
+		if err := config.Save(cfg); err != nil {
+			return fmt.Errorf("save config: %w", err)
+		}
+
+		fmt.Printf("  config reset to defaults\n")
+		return nil
+	},
+}
+
 func init() {
 	configCmd.AddCommand(configGetCmd)
 	configCmd.AddCommand(configSetCmd)
+	configCmd.AddCommand(configResetCmd)
 }

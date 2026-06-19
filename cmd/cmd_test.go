@@ -8,7 +8,9 @@ import (
 	"path/filepath"
 	"strings"
 	"testing"
+	"time"
 
+	"github.com/surajsrivastav/gitwhy/pkg/config"
 	"github.com/surajsrivastav/gitwhy/pkg/provenance"
 )
 
@@ -1295,6 +1297,193 @@ func TestAuditExportCmdCSVFormat(t *testing.T) {
 
 	if output == "" {
 		t.Error("expected CSV output")
+	}
+}
+
+// --- PLG blocker tests ---
+
+func setupTestRepo(t *testing.T) string {
+	t.Helper()
+	tmpDir := t.TempDir()
+	for _, args := range [][]string{
+		{"init"},
+		{"config", "user.email", "test@test.com"},
+		{"config", "user.name", "Test"},
+	} {
+		cmd := exec.Command("git", append([]string{"-C", tmpDir}, args...)...)
+		if out, err := cmd.CombinedOutput(); err != nil {
+			t.Fatalf("git %v: %v\n%s", args, err, out)
+		}
+	}
+	return tmpDir
+}
+
+// Blocker 1: Hook installation — clean repo installs hook with gitwhy signature.
+func TestInstallHookCleanRepo(t *testing.T) {
+	tmpDir := setupTestRepo(t)
+	if err := installHook(tmpDir); err != nil {
+		t.Fatalf("installHook() error = %v", err)
+	}
+	hookPath := filepath.Join(tmpDir, ".git", "hooks", "post-commit")
+	data, err := os.ReadFile(hookPath)
+	if err != nil {
+		t.Fatal("expected hook to exist")
+	}
+	if !strings.Contains(string(data), hookSignature) {
+		t.Error("expected hook to be signed as gitwhy")
+	}
+}
+
+// Blocker 1: Hook installation — existing foreign hook gets backed up.
+func TestInstallHookBackupsForeignHook(t *testing.T) {
+	tmpDir := setupTestRepo(t)
+	hooksDir := filepath.Join(tmpDir, ".git", "hooks")
+	os.MkdirAll(hooksDir, 0755)
+	hookPath := filepath.Join(hooksDir, "post-commit")
+	os.WriteFile(hookPath, []byte("#!/bin/sh\necho old\n"), 0755)
+
+	if err := installHook(tmpDir); err != nil {
+		t.Fatalf("installHook() error = %v", err)
+	}
+
+	bakPath := filepath.Join(hooksDir, ".post-commit.bak")
+	if _, err := os.Stat(bakPath); os.IsNotExist(err) {
+		t.Error("expected .post-commit.bak to exist")
+	}
+	bak, _ := os.ReadFile(bakPath)
+	if !strings.Contains(string(bak), "echo old") {
+		t.Error("expected backup to contain original hook content")
+	}
+	hook, _ := os.ReadFile(hookPath)
+	if !strings.Contains(string(hook), hookSignature) {
+		t.Error("expected new hook to be gitwhy-signed")
+	}
+}
+
+// Blocker 1: Hook installation — re-init is idempotent.
+func TestInstallHookIdempotent(t *testing.T) {
+	tmpDir := setupTestRepo(t)
+	if err := installHook(tmpDir); err != nil {
+		t.Fatalf("first installHook() error = %v", err)
+	}
+	if err := installHook(tmpDir); err != nil {
+		t.Fatalf("second installHook() (idempotent) error = %v", err)
+	}
+	bakPath := filepath.Join(tmpDir, ".git", "hooks", ".post-commit.bak")
+	if _, err := os.Stat(bakPath); err == nil {
+		t.Error("re-init should not create a .bak of a gitwhy hook")
+	}
+}
+
+// Blocker 2: LLM timeout — commit succeeds when summary command times out.
+func TestGenerateSummaryTimeout(t *testing.T) {
+	if testing.Short() {
+		t.Skip("skipping timeout test in short mode")
+	}
+	repo := t.TempDir()
+	for _, args := range [][]string{
+		{"init"},
+		{"config", "user.email", "test@test.com"},
+		{"config", "user.name", "Test"},
+	} {
+		cmd := exec.Command("git", append([]string{"-C", repo}, args...)...)
+		if out, err := cmd.CombinedOutput(); err != nil {
+			t.Fatalf("git %v: %v\n%s", args, err, out)
+		}
+	}
+	os.WriteFile(filepath.Join(repo, "x.go"), []byte("package main\n"), 0644)
+	exec.Command("git", "-C", repo, "add", "x.go").CombinedOutput()
+	exec.Command("git", "-C", repo, "commit", "-m", "test").CombinedOutput()
+
+	cfg := &config.SummaryConfig{
+		Enabled: true,
+		Command: "sleep 60",
+		Mode:    config.SummaryModeFilenames,
+	}
+	summary := generateSummary(cfg, repo)
+	if summary != "" {
+		t.Errorf("expected empty summary on timeout, got %q", summary)
+	}
+}
+
+// Blocker 2: LLM timeout with a script that ignores extra args and sleeps.
+func TestGenerateSummaryTimeoutActual(t *testing.T) {
+	if testing.Short() {
+		t.Skip("skipping real timeout test in short mode")
+	}
+	repo := t.TempDir()
+	for _, args := range [][]string{
+		{"init"},
+		{"config", "user.email", "test@test.com"},
+		{"config", "user.name", "Test"},
+	} {
+		cmd := exec.Command("git", append([]string{"-C", repo}, args...)...)
+		if out, err := cmd.CombinedOutput(); err != nil {
+			t.Fatalf("git %v: %v\n%s", args, err, out)
+		}
+	}
+	os.WriteFile(filepath.Join(repo, "y.go"), []byte("package main\n"), 0644)
+	exec.Command("git", "-C", repo, "add", "y.go").CombinedOutput()
+	exec.Command("git", "-C", repo, "commit", "-m", "test").CombinedOutput()
+
+	// Create a script that ignores args and sleeps 60s.
+	scriptPath := filepath.Join(t.TempDir(), "llm-hang")
+	os.WriteFile(scriptPath, []byte("#!/bin/sh\nsleep 60\n"), 0755)
+
+	cfg := &config.SummaryConfig{
+		Enabled: true,
+		Command: scriptPath,
+		Mode:    config.SummaryModeFilenames,
+	}
+
+	start := time.Now()
+	summary := generateSummary(cfg, repo)
+	elapsed := time.Since(start)
+
+	if summary != "" {
+		t.Errorf("expected empty summary on timeout, got %q", summary)
+	}
+	if elapsed > 8*time.Second {
+		t.Errorf("generateSummary took too long (%v), expected ≤8s", elapsed)
+	}
+}
+
+// Blocker 2: LLM disabled — no summary attempt when disabled.
+func TestGenerateSummaryDisabledNoAttempt(t *testing.T) {
+	cfg := &config.SummaryConfig{Enabled: false, Command: "sleep 60"}
+	summary := generateSummary(cfg, "/tmp")
+	if summary != "" {
+		t.Errorf("expected empty summary when disabled, got %q", summary)
+	}
+}
+
+// Blocker 3: Config corruption — command works with corrupted config.
+func TestConfigResetCmd(t *testing.T) {
+	tmpDir := setupTestRepo(t)
+	origWd, _ := os.Getwd()
+	os.Chdir(tmpDir)
+	defer os.Chdir(origWd)
+
+	os.MkdirAll(filepath.Join(tmpDir, ".gitwhy"), 0755)
+	os.WriteFile(filepath.Join(tmpDir, ".gitwhy", "config.yaml"), []byte("bad: yaml: [[["), 0644)
+
+	output := captureStdout(func() {
+		err := configResetCmd.RunE(configResetCmd, nil)
+		if err != nil {
+			t.Errorf("configResetCmd.RunE() error = %v", err)
+		}
+	})
+
+	if !strings.Contains(output, "config reset") {
+		t.Errorf("expected reset confirmation, got: %s", output)
+	}
+	// After reset, load should return valid defaults.
+	cfg, err := config.Load(tmpDir)
+	if err != nil {
+		t.Fatalf("Load() after reset error = %v", err)
+	}
+	if cfg.Backend != config.BackendGitNotes {
+		t.Errorf("expected default backend after reset, got %q", cfg.Backend)
 	}
 }
 

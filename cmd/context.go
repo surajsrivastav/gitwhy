@@ -2,10 +2,14 @@ package cmd
 
 import (
 	"bytes"
+	"context"
+	"errors"
 	"fmt"
+	"os"
 	"os/exec"
 	"regexp"
 	"strings"
+	"time"
 
 	"github.com/surajsrivastav/gitwhy/pkg/config"
 	"github.com/surajsrivastav/gitwhy/pkg/provenance"
@@ -86,9 +90,21 @@ func generateSummary(summaryCfg *config.SummaryConfig, repoPath string) string {
 		return ""
 	}
 
-	cmd := exec.Command(args[0], append(args[1:], prompt)...)
+	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+	defer cancel()
+
+	cmd := exec.CommandContext(ctx, args[0], append(args[1:], prompt)...)
+	cmd.WaitDelay = 1 * time.Second
 	out, err := cmd.CombinedOutput()
 	if err != nil {
+		var execErr *exec.Error
+		if errors.Is(ctx.Err(), context.DeadlineExceeded) {
+			fmt.Fprintf(os.Stderr, "  gitwhy: summary skipped (command timed out after 5s)\n")
+		} else if errors.As(err, &execErr) && errors.Is(execErr.Err, exec.ErrNotFound) {
+			fmt.Fprintf(os.Stderr, "  gitwhy: summary skipped (command not found: %s)\n", args[0])
+		} else {
+			fmt.Fprintf(os.Stderr, "  gitwhy: summary skipped (%v)\n", err)
+		}
 		return ""
 	}
 

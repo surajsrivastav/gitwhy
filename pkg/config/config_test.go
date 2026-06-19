@@ -149,9 +149,15 @@ func TestLoadCorruptedConfig(t *testing.T) {
 	os.MkdirAll(ConfigDir(tmpDir), 0755)
 	os.WriteFile(ConfigPath(tmpDir), []byte("invalid: yaml: [[["), 0644)
 
-	_, err := Load(tmpDir)
-	if err == nil {
-		t.Error("expected error for corrupted config")
+	cfg, err := Load(tmpDir)
+	if err != nil {
+		t.Errorf("Load() should not error on corrupted config, got: %v", err)
+	}
+	if cfg == nil {
+		t.Fatal("expected non-nil config (defaults) for corrupted config")
+	}
+	if cfg.Backend != BackendGitNotes {
+		t.Errorf("expected default backend for corrupted config, got %q", cfg.Backend)
 	}
 }
 

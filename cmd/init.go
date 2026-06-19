@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"os"
 	"path/filepath"
+	"strings"
 
 	"github.com/spf13/cobra"
 
@@ -69,7 +70,6 @@ post-commit hook for automatic provenance capture after every commit.`,
 			if err := installHook(repoPath); err != nil {
 				fmt.Fprintf(os.Stderr, "  warning: failed to install hook: %v\n", err)
 			} else {
-				fmt.Printf("  hook:    post-commit hook installed\n")
 				if initDefaultBy != "" {
 					fmt.Printf("  default attribution: %s\n", initDefaultBy)
 				}
@@ -83,6 +83,28 @@ post-commit hook for automatic provenance capture after every commit.`,
 func init() {
 	initCmd.Flags().BoolVar(&initNoHook, "no-hook", false, "Skip installing git post-commit hook")
 	initCmd.Flags().StringVar(&initDefaultBy, "default-by", "", "Default attribution for auto-capture (e.g. agent:opencode)")
+}
+
+const hookSignature = "# gitwhy auto-capture hook"
+
+// hookStatus describes the state of an existing post-commit hook.
+type hookStatus int
+
+const (
+	hookAbsent   hookStatus = iota // no hook file
+	hookGitwhy                     // hook is gitwhy-signed (idempotent)
+	hookForeign                    // hook exists but not gitwhy
+)
+
+func detectHook(hookPath string) hookStatus {
+	data, err := os.ReadFile(hookPath)
+	if err != nil {
+		return hookAbsent
+	}
+	if strings.Contains(string(data), hookSignature) {
+		return hookGitwhy
+	}
+	return hookForeign
 }
 
 func installHook(repoPath string) error {
@@ -99,9 +121,20 @@ func installHook(repoPath string) error {
 	hooksDir := filepath.Join(repoPath, ".git", "hooks")
 	hookPath := filepath.Join(hooksDir, "post-commit")
 
-	// Check if hook already exists
-	if _, err := os.Stat(hookPath); err == nil {
-		fmt.Fprintf(os.Stderr, "  warning: post-commit hook already exists, overwriting\n")
+	if err := os.MkdirAll(hooksDir, 0755); err != nil {
+		return fmt.Errorf("create hooks dir: %w", err)
+	}
+
+	switch detectHook(hookPath) {
+	case hookGitwhy:
+		fmt.Printf("  hook:    post-commit hook already installed (skipping)\n")
+		return nil
+	case hookForeign:
+		bakPath := filepath.Join(hooksDir, ".post-commit.bak")
+		if err := os.Rename(hookPath, bakPath); err != nil {
+			return fmt.Errorf("backup existing hook: %w", err)
+		}
+		fmt.Fprintf(os.Stderr, "  warning: backed up existing hook to %s\n", bakPath)
 	}
 
 	hookContent := fmt.Sprintf(`#!/bin/sh
@@ -110,10 +143,6 @@ func installHook(repoPath string) error {
 # Tries PATH first, falls back to the path at install time.
 GHW_CAPTURE=1 ghw commit 2>/dev/null || GHW_CAPTURE=1 %s commit 2>/dev/null || true
 `, ghwPath)
-
-	if err := os.MkdirAll(hooksDir, 0755); err != nil {
-		return fmt.Errorf("create hooks dir: %w", err)
-	}
 
 	if err := os.WriteFile(hookPath, []byte(hookContent), 0755); err != nil {
 		return fmt.Errorf("write hook: %w", err)

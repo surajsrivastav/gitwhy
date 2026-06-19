@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"os"
 	"path/filepath"
+	"strings"
 
 	"gopkg.in/yaml.v3"
 )
@@ -157,7 +158,13 @@ func Load(repoPath string) (*Config, error) {
 	}
 
 	if err := yaml.Unmarshal(data, cfg); err != nil {
-		return nil, fmt.Errorf("parse config: %w", err)
+		// Extract line number hint from yaml error if available.
+		hint := ""
+		if strings.Contains(err.Error(), "line ") {
+			hint = " (" + err.Error() + ")"
+		}
+		fmt.Fprintf(os.Stderr, "  gitwhy: config invalid%s — using defaults\n", hint)
+		return DefaultConfig(), nil
 	}
 
 	if cfg.Summary != nil && cfg.Summary.Enabled {
