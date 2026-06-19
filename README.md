@@ -8,140 +8,109 @@
 [![Go Report Card](https://goreportcard.com/badge/github.com/surajsrivastav/gitwhy?style=flat-square)](https://goreportcard.com/report/github.com/surajsrivastav/gitwhy)
 [![Coverage](https://codecov.io/gh/surajsrivastav/gitwhy/branch/master/graph/badge.svg)](https://codecov.io/gh/surajsrivastav/gitwhy)
 
-**The context layer for Git.** gitwhy captures the reasoning behind every commit — the AI model, the ticket, the intent, the origin — so your team can review, debug, and onboard without guessing.
+Every `git commit` already knows *what* changed. gitwhy remembers *why*.
 
-Git shows you *what* changed. gitwhy remembers *why*.
+It automatically captures who (or what) made the change, which AI model was involved, the ticket from your branch name, and a one-line summary — all from a plain `git commit`. No flags, no extra commands, no thinking about it.
 
-<a href="https://surajsrivastav.github.io/gitwhy/demo.html">
-  <img src="https://img.shields.io/badge/▶_live_demo-1a1b1e?style=for-the-badge" alt="Live demo">
-</a>
+## Why gitwhy?
 
----
+**The problem:** AI-generated code is everywhere. Copilot, Claude, Cursor — every commit is a mix of human and AI work. Months later, nobody knows which model produced what, why a change was made, or what spec it came from. Audit trails are empty. Debugging is guesswork.
 
-## The problem
+**What gitwhy does:** Every `git commit` automatically captures provenance — the AI model, the ticket, the intent, the origin (human/spec/AI). Stored locally in git-notes. Zero friction. Plain `git commit` stays plain.
 
-AI tools write a lot of your code now. Copilot, Claude, Cursor — every commit is a mix of human judgment and AI output. Six months later, nobody can tell which model produced what, what ticket drove the change, or whether a human even looked at it.
+**Who needs this:**
+- **Teams shipping AI-generated code** — prove what models produced what
+- **Compliance/audit** — trace every change back to a spec or prompt
+- **Debugging** — "which model wrote this?" answered in one command
+- **Solo devs** — never wonder "why did I do that?" six months later
 
-`git blame` points at a name and a date. That's not enough anymore.
+## How it works
 
-## The solution
-
-One-time setup. Zero new habits. After `ghw init`, every `git commit` silently records the full picture in the background:
-
-- Which AI model was involved
-- Which ticket it was for
-- What the intent was
-- Whether a human, a spec, or a prompt drove it
-
-Plain `git commit` stays plain. The context is just there when you need it.
-
-## Quickstart
+`ghw init` installs a post-commit hook. After that, every `git commit` silently records provenance in the background. That's it.
 
 ```bash
 cd your-repo
-ghw init                              # one-time setup
-
-git add . && git commit -m "feat: add login"   # nothing changes here
-ghw why HEAD                          # see what gitwhy captured
+ghw init                        # one-time setup
+git add . && git commit -m "feat: add login"   # business as usual
+ghw why HEAD                    # see what gitwhy captured
 ```
 
-Output:
+## What gets captured automatically
+
+| You write code on... | gitwhy captures... |
+|---|---|
+| `feature/Ticket-42-login` | Ticket `Ticket-42` — parsed from branch name |
+| `feat: add login handler` | Intent `"add login handler"` — parsed from conventional commit, or summarized by your LLM CLI |
+| ...with Claude open | Model `claude-sonnet-4` — auto-detected from `$CLAUDE_MODEL` |
+| ...and Copilot running | Attribution `copilot` — from `--by` flag or config |
+
+You get a record like:
 
 ```
 intent:    add login handler
 origin:    spec
 context:
-    ticket:   PROJ-42
-    branch:   feature/PROJ-42-login
+    ticket:   Ticket-42
+    branch:   feature/Ticket-42-login
     model:    claude-sonnet-4
 ```
 
-## What gets captured
-
-| When you commit from... | gitwhy records... |
-|---|---|
-| `feature/PROJ-42-login` | Ticket `PROJ-42` — parsed from branch name |
-| `feat: add login handler` | Intent — from the commit message, or summarised by your LLM CLI |
-| ...with Claude open | Model `claude-sonnet-4` — auto-detected from `$CLAUDE_MODEL` |
-| ...with Copilot running | Attribution `copilot` — from `--by` or your config |
-
-Stored in git-notes alongside the commit. No extra files, no external service, no database.
-
-## Why teams use it
-
-**Code review** — reviewers see the rationale, not just the diff. No more "what was this for?" threads.
-
-**Debugging** — trace a broken line back to its intent, its ticket, and the model that wrote it. In one command.
-
-**Onboarding** — new engineers understand past trade-offs without hunting through Slack or Notion.
-
 ## Commands
 
-| What you want | Command |
+| If you want to... | Run this |
 |---|---|
 | Set up gitwhy in a repo | `ghw init` |
-| Commit with explicit attribution | `ghw commit --by copilot --ticket PROJ-42` |
-| See why a commit was made | `ghw why HEAD` |
-| Browse history with context | `ghw log --why` |
-| Export all records to JSON | `ghw audit export` |
-| Turn off LLM summaries | `ghw config set summary.enabled false` |
-| Switch LLM command | `ghw config set summary.command claude` |
+| Commit with explicit flags | `ghw commit --by copilot --ticket Ticket-42` |
+| See provenance for a commit | `ghw why HEAD` |
+| Browse annotated history | `ghw log --why` |
+| Toggle LLM summary on/off | `ghw config set summary.enabled false` |
+| Change LLM command | `ghw config set summary.command claude` |
+| Export all records | `ghw audit export` |
 
-## Optional flags
+## Flags (all optional)
 
-Everything is auto-detected. Override any field when you need to:
+Pass these to `ghw commit` when you want to override auto-detection:
 
-| Flag | What it sets |
+| Flag | What it does |
 |---|---|
 | `--by` | Who: `human`, `copilot`, `agent:<name>` |
 | `--intent` | Why: one-line description |
 | `--origin` | Source: `human`, `spec`, `prompt`, `template`, `upstream` |
-| `--ticket` | Ticket reference, e.g. `PROJ-42` |
+| `--ticket` | Reference: e.g. `Ticket-42` |
 | `--spec` | Spec driving the change |
-| `--prompt` | Prompt text if AI-generated |
+| `--spec-hash` | Spec content hash |
+| `--prompt` | Prompt text (if AI-generated) |
 | `--model` | Model name (overrides env detection) |
 | `-m / --message` | Commit message |
 
 ## Configuration
 
-`.gitwhy/config.yaml` in your repo:
+Tweak behavior in `.gitwhy/config.yaml`:
 
 ```yaml
-backend: git-notes          # git-notes (default) or file
+backend: git-notes                # how records are stored
 auto_capture:
   enabled: true
-  default_by: agent:claude  # default attribution for auto-captured commits
+  default_by: agent:opencode      # default attribution for auto-capture
 summary:
-  enabled: true             # generate intent summary via LLM
-  command: llm              # any CLI that accepts a prompt as its last argument
-  mode: filenames           # filenames | diff
+  enabled: true                   # generate intent via LLM
+  command: llm                    # any CLI that takes a prompt as last arg
+  mode: filenames                  # filenames | diff
 ```
 
 ## Install
 
-**Prerequisites:** [Git](https://git-scm.com/) and the [GitHub CLI](https://cli.github.com/) (`gh`).
+**Prerequisites:** [Git](https://git-scm.com/), the [GitHub CLI](https://cli.github.com/) (`gh`), and optionally [Go](https://go.dev/dl/) 1.21+ for building from source.
 
-### macOS (Homebrew) — recommended
-
-```bash
-
-```
-
-### Go install
+### macOS (Homebrew)
 
 ```bash
-go install github.com/surajsrivastav/gitwhy@latest
+brew install surajsrivastav/tap/ghw
 ```
 
-### Install script
+### Pre-built binary (any OS)
 
-```bash
-curl -sSfL https://raw.githubusercontent.com/surajsrivastav/gitwhy/master/install.sh | sh
-```
-
-### Pre-built binaries
-
-Download for your platform from the [releases page](https://github.com/surajsrivastav/gitwhy/releases):
+Download the latest release for your platform from the [releases page](https://github.com/surajsrivastav/gitwhy/releases):
 
 ```bash
 # macOS (Apple Silicon)
@@ -165,7 +134,13 @@ curl -sLO https://github.com/surajsrivastav/gitwhy/releases/latest/download/gitw
 Expand-Archive gitwhy_windows_amd64.zip -DestinationPath ~\bin
 ```
 
-### Build from source
+### Via Go (if you have Go installed)
+
+```bash
+go install github.com/surajsrivastav/gitwhy@latest
+```
+
+### Or build from source
 
 ```bash
 git clone https://github.com/surajsrivastav/gitwhy.git
@@ -174,10 +149,37 @@ make build
 sudo mv ghw /usr/local/bin/
 ```
 
-## Contributing
+### Install script
 
-See [CONTRIBUTING.md](CONTRIBUTING.md). Run `make test` before opening a PR.
+```bash
+curl -sSfL https://raw.githubusercontent.com/surajsrivastav/gitwhy/master/install.sh | sh
+```
+
+## Project structure
+
+```
+cmd/          - CLI commands
+pkg/
+  provenance/ - What a record looks like
+  config/     - Reading/writing .gitwhy/config.yaml
+  storage/    - Where records live (git-notes or files)
+  drift/      - Tracking spec changes over time
+  audit/      - Reports and exports
+  passthrough/ - Handing unknown commands to `gh`
+```
+
+## Testing
+
+```bash
+make test       # run all tests
+make coverage   # coverage report
+make vet        # check for issues
+```
 
 ## License
 
 MIT — see [LICENSE](LICENSE).
+
+## Questions?
+
+Check the [PRD](PRD.md) for detailed specs, or open an issue on GitHub.
