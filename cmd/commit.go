@@ -117,9 +117,32 @@ configured storage backend.`,
 				commitFlag.specHash,
 			)
 
+			session, _ := config.LoadSession(repoPath)
+
 			model := commitFlag.model
+			if model == "" && session != nil {
+				model = session.Model
+			}
 			if model == "" {
 				model = resolveModel()
+			}
+
+			prompt := commitFlag.prompt
+			if prompt == "" && session != nil {
+				prompt = session.Prompt
+			}
+			if prompt == "" {
+				prompt = resolvePrompt()
+			}
+			if commitFlag.prompt == "" {
+				commitFlag.prompt = prompt
+			}
+
+			if commitFlag.ticket == "" && session != nil {
+				commitFlag.ticket = session.Ticket
+			}
+			if commitFlag.origin == "" && session != nil {
+				originStr = session.Origin
 			}
 
 			ticketSet := commitFlag.ticket != ""
@@ -173,6 +196,13 @@ var envModelVars = []string{
 	"CLAUDE_MODEL",
 	"GITHUB_MODEL",
 	"AI_MODEL",
+	"GITWHY_MODEL",
+	"GHW_MODEL",
+}
+
+var envPromptVars = []string{
+	"GITWHY_PROMPT",
+	"GHW_PROMPT",
 }
 
 // resolveModel tries to auto-detect the model name from the environment.
@@ -203,6 +233,17 @@ func resolveModel() string {
 		return promptModel("")
 	}
 
+	return ""
+}
+
+// resolvePrompt tries to auto-detect the prompt from the environment.
+// Returns the prompt string or empty if no prompt is available.
+func resolvePrompt() string {
+	for _, env := range envPromptVars {
+		if v := os.Getenv(env); v != "" {
+			return v
+		}
+	}
 	return ""
 }
 

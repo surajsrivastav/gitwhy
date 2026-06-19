@@ -231,6 +231,44 @@ func TestLoadDirectoryInsteadOfFile(t *testing.T) {
 	}
 }
 
+func TestSaveAndLoadSession(t *testing.T) {
+	tmpDir := t.TempDir()
+
+	session := &SessionState{
+		Model:  "gpt-4",
+		Prompt: "Fix the failing test",
+		Ticket: "PROJ-123",
+		Origin: "prompt",
+	}
+
+	if err := SaveSession(tmpDir, session); err != nil {
+		t.Fatalf("SaveSession() error = %v", err)
+	}
+
+	loaded, err := LoadSession(tmpDir)
+	if err != nil {
+		t.Fatalf("LoadSession() error = %v", err)
+	}
+	if loaded == nil {
+		t.Fatal("expected loaded session, got nil")
+	}
+	if loaded.Model != session.Model || loaded.Prompt != session.Prompt || loaded.Ticket != session.Ticket || loaded.Origin != session.Origin {
+		t.Fatalf("loaded session mismatch: got %+v, want %+v", loaded, session)
+	}
+}
+
+func TestLoadSessionMissing(t *testing.T) {
+	tmpDir := t.TempDir()
+
+	loaded, err := LoadSession(tmpDir)
+	if err != nil {
+		t.Fatalf("LoadSession() error = %v", err)
+	}
+	if loaded != nil {
+		t.Fatalf("expected nil session for missing file, got %+v", loaded)
+	}
+}
+
 func TestDefaultSummaryConfig(t *testing.T) {
 	cfg := DefaultSummaryConfig()
 	if !cfg.Enabled {
