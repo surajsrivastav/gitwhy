@@ -4,6 +4,6 @@ git_notes:
 auto_capture:
     enabled: true
 summary:
-  enabled: true
-  command: claude
-  mode: diff
+    enabled: true
+    command: claude
+    mode: diff
