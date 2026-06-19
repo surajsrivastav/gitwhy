@@ -38,8 +38,6 @@ Plain `git commit` stays plain. The context is just there when you need it.
 ## Quickstart
 
 ```bash
-brew install surajsrivastav/tap/ghw   # or see other install options below
-
 cd your-repo
 ghw init                              # one-time setup
 
@@ -126,7 +124,7 @@ summary:
 ### macOS (Homebrew) — recommended
 
 ```bash
-brew install surajsrivastav/tap/ghw
+
 ```
 
 ### Go install
