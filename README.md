@@ -8,6 +8,8 @@
 [![Go Report Card](https://goreportcard.com/badge/github.com/surajsrivastav/gitwhy?style=flat-square)](https://goreportcard.com/report/github.com/surajsrivastav/gitwhy)
 [![Coverage](https://codecov.io/gh/surajsrivastav/gitwhy/branch/master/graph/badge.svg)](https://codecov.io/gh/surajsrivastav/gitwhy)
 
+![gitwhy architecture](docs/architecture.svg)
+
 Every `git commit` already knows *what* changed. gitwhy remembers *why*.
 
 It automatically captures who (or what) made the change, which AI model was involved, the ticket from your branch name, and a one-line summary — all from a plain `git commit`. No flags, no extra commands, no thinking about it.

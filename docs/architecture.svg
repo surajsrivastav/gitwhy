@@ -1,0 +1,125 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 900 480" width="100%" height="100%">
+  <defs>
+    <style>
+      @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&amp;family=JetBrains+Mono:wght@400;500&amp;display=swap');
+      .title { font-family: 'Inter', sans-serif; font-weight: 700; font-size: 22px; fill: #111827; }
+      .subtitle { font-family: 'Inter', sans-serif; font-weight: 400; font-size: 14px; fill: #4B5563; }
+      .box-title { font-family: 'Inter', sans-serif; font-weight: 600; font-size: 14px; fill: #111827; }
+      .box-desc { font-family: 'Inter', sans-serif; font-weight: 400; font-size: 12px; fill: #4B5563; }
+      .code-text { font-family: 'JetBrains Mono', monospace; font-size: 12px; fill: #032F62; }
+      .badge-text { font-family: 'Inter', sans-serif; font-weight: 600; font-size: 11px; fill: #FFFFFF; }
+      .flow-label { font-family: 'Inter', sans-serif; font-weight: 500; font-size: 12px; fill: #059669; }
+
+      /* Dark mode override support natively via GitHub */
+      @media (prefers-color-scheme: dark) {
+        .bg-canvas { fill: #0D1117; }
+        .title { fill: #F0F6FC; }
+        .subtitle { fill: #8B949E; }
+        .box-rect { fill: #161B22; stroke: #30363D; }
+        .box-title { fill: #F0F6FC; }
+        .box-desc { fill: #8B949E; }
+        .code-box { fill: #0D1117; stroke: #30363D; }
+        .code-text { fill: #79C0FF; }
+        .arrow-line { stroke: #30363D; }
+        .arrow-head { fill: #30363D; }
+      }
+    </style>
+
+    <linearGradient id="brandGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#059669" />
+      <stop offset="100%" stop-color="#10B981" />
+    </linearGradient>
+
+    <filter id="dropShadow" x="-5%" y="-5%" width="110%" height="110%">
+      <feDropShadow dx="0" dy="4" stdDeviation="4" flood-opacity="0.05"/>
+    </filter>
+  </defs>
+
+  <rect class="bg-canvas" width="900" height="480" fill="#FAFAFA" rx="8"/>
+
+  <g transform="translate(40, 45)">
+    <rect width="48" height="6" fill="url(#brandGrad)" rx="3"/>
+    <text x="0" y="32" class="title">gitwhy (<tspan fill="#059669">ghw</tspan>) Architecture</text>
+    <text x="0" y="52" class="subtitle">Context-aware GitHub CLI wrapper attaching rich provenance metadata to git history</text>
+  </g>
+
+  <g transform="translate(40, 140)" filter="url(#dropShadow)">
+    <rect class="box-rect" width="220" height="90" fill="#FFFFFF" stroke="#E5E7EB" stroke-width="1.5" rx="8"/>
+    <rect x="15" y="15" width="24" height="24" fill="#EEF2F6" rx="6"/>
+    <path d="M22 23h4v2h-4zm0 4h4v2h-4zm0-8h4v2h-4zm-4-4h12c1.1 0 2 .9 2 2v14c0 1.1-.9 2-2 2H18c-1.1 0-2-.9-2-2V13c0-1.1.9-2 2-2zm0 2v14h12V13H18z" fill="#4B5563" transform="translate(11, 11) scale(0.8)"/>
+    <text x="52" y="32" class="box-title">File &amp; Environment Context</text>
+    <text x="52" y="52" class="box-desc">Modified files, workspace</text>
+    <text x="52" y="68" class="box-desc">diffs, branch, and JIRA IDs.</text>
+  </g>
+
+  <g transform="translate(340, 120)" filter="url(#dropShadow)">
+    <rect class="box-rect" width="240" height="130" fill="#FFFFFF" stroke="#E5E7EB" stroke-width="1.5" rx="8"/>
+    <rect x="15" y="-12" width="105" height="22" fill="url(#brandGrad)" rx="11"/>
+    <text x="25" y="3" class="badge-text">CLI PROXY LAYER</text>
+
+    <text x="20" y="40" class="box-title">gitwhy / ghw Wrapper</text>
+    <text x="20" y="62" class="box-desc">1. Intercepts git/gh commands seamlessly</text>
+    <text x="20" y="80" class="box-desc">2. Resolves model strings &amp; active tokens</text>
+    <text x="20" y="98" class="box-desc">3. Extracts intent from agent processes</text>
+  </g>
+
+  <g transform="translate(640, 140)" filter="url(#dropShadow)">
+    <rect class="box-rect" width="220" height="90" fill="#FFFFFF" stroke="#E5E7EB" stroke-width="1.5" rx="8"/>
+    <rect x="15" y="15" width="24" height="24" fill="#ECFDF5" rx="6"/>
+    <path d="M19 3H5c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h14c1.1 0 2-.9 2-2V5c0-1.1-.9-2-2-2zm0 16H5V5h14v14zM7 10h2v7H7zm4-3h2v10h-2zm4 6h2v4h-2z" fill="#059669" transform="translate(11, 11) scale(0.8)"/>
+    <text x="52" y="32" class="box-title">Persistence Layer</text>
+    <text x="52" y="52" class="box-desc">Stored safely inside native</text>
+    <text x="52" y="68" class="code-text" font-weight="500">git-notes</text>
+  </g>
+
+  <g transform="translate(40, 320)" filter="url(#dropShadow)">
+    <rect class="box-rect" width="240" height="110" fill="#FFFFFF" stroke="#E5E7EB" stroke-width="1.5" rx="8"/>
+    <rect x="15" y="15" width="70" height="18" fill="#EFF6FF" rx="4"/>
+    <text x="23" y="28" class="box-title" fill="#1D4ED8" font-size="11">ENGINEERS</text>
+    <text x="15" y="55" class="box-title">$ ghw why HEAD</text>
+    <text x="15" y="78" class="box-desc">Instantly inspect code origins,</text>
+    <text x="15" y="94" class="box-desc">original prompt context, &amp; intent.</text>
+  </g>
+
+  <g transform="translate(330, 320)" filter="url(#dropShadow)">
+    <rect class="box-rect" width="240" height="110" fill="#FFFFFF" stroke="#E5E7EB" stroke-width="1.5" rx="8"/>
+    <rect x="15" y="15" width="110" height="18" fill="#F0FDF4" rx="4"/>
+    <text x="23" y="28" class="box-title" fill="#15803D" font-size="11">TEAMS &amp; CI/CD</text>
+    <text x="15" y="55" class="box-title">$ ghw audit export</text>
+    <text x="15" y="78" class="box-desc">Generate compliance reports and</text>
+    <text x="15" y="94" class="box-desc">block unverified agent code in pipelines.</text>
+  </g>
+
+  <g transform="translate(620, 320)" filter="url(#dropShadow)">
+    <rect class="box-rect" width="240" height="110" fill="#FFFFFF" stroke="#E5E7EB" stroke-width="1.5" rx="8"/>
+    <rect x="15" y="15" width="80" height="18" fill="#F5F3FF" rx="4"/>
+    <text x="23" y="28" class="box-title" fill="#6D28D9" font-size="11">AI AGENTS</text>
+    <text x="15" y="55" class="box-title">Machine Readable</text>
+    <text x="15" y="78" class="box-desc">Provides deep lineage memory to</text>
+    <text x="15" y="94" class="box-desc">prevent autonomous context drift loops.</text>
+  </g>
+
+  <g>
+    <path class="arrow-line" d="M 260 185 L 332 185" fill="none" stroke="#9CA3AF" stroke-width="2" stroke-dasharray="4 4"/>
+    <polygon class="arrow-head" points="340,185 330,180 330,190" fill="#9CA3AF"/>
+  </g>
+
+  <g>
+    <path class="arrow-line" d="M 580 185 L 632 185" fill="none" stroke="#9CA3AF" stroke-width="2"/>
+    <polygon class="arrow-head" points="640,185 630,180 630,190" fill="#9CA3AF"/>
+    <text x="590" y="175" class="flow-label" text-anchor="middle">Writes</text>
+  </g>
+
+  <g>
+    <path class="arrow-line" d="M 750 230 L 750 280 L 160 280 L 160 312" fill="none" stroke="#9CA3AF" stroke-width="1.5"/>
+    <polygon class="arrow-head" points="160,320 155,310 165,310" fill="#9CA3AF"/>
+
+    <path class="arrow-line" d="M 450 280 L 450 312" fill="none" stroke="#9CA3AF" stroke-width="1.5"/>
+    <polygon class="arrow-head" points="450,320 445,310 455,310" fill="#9CA3AF"/>
+
+    <path class="arrow-line" d="M 740 280 L 740 312" fill="none" stroke="#9CA3AF" stroke-width="1.5"/>
+    <polygon class="arrow-head" points="740,320 735,310 745,310" fill="#9CA3AF"/>
+
+    <text x="450" y="273" class="flow-label" text-anchor="middle" fill="#4B5563" font-size="11">Reads &amp; Validates Provenance</text>
+  </g>
+</svg>
