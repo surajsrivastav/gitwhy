@@ -7,12 +7,19 @@
 [![Release](https://img.shields.io/github/v/release/surajsrivastav/gitwhy?style=flat-square&logo=github)](https://github.com/surajsrivastav/gitwhy/releases)
 [![Go Report Card](https://goreportcard.com/badge/github.com/surajsrivastav/gitwhy?style=flat-square)](https://goreportcard.com/report/github.com/surajsrivastav/gitwhy)
 [![Coverage](https://codecov.io/gh/surajsrivastav/gitwhy/branch/master/graph/badge.svg)](https://codecov.io/gh/surajsrivastav/gitwhy)
+[![Stars](https://img.shields.io/github/stars/surajsrivastav/gitwhy?style=flat-square)](https://github.com/surajsrivastav/gitwhy/stargazers)
 
 ![gitwhy architecture](docs/architecture.svg)
 
 Every `git commit` already knows *what* changed. gitwhy remembers *why*.
 
 It automatically captures who (or what) made the change, which AI model was involved, the ticket from your branch name, and a one-line summary — all from a plain `git commit`. No flags, no extra commands, no thinking about it.
+
+## Demo
+
+> **[Try the interactive terminal demo →](demo.html)**
+
+A recording of the full workflow (init → commit → `ghw why`) is coming soon. In the meantime, open `demo.html` locally or view it on GitHub Pages to see the annotated commit flow in action.
 
 ## Why gitwhy?
 
@@ -25,6 +32,20 @@ It automatically captures who (or what) made the change, which AI model was invo
 - **Compliance/audit** — trace every change back to a spec or prompt
 - **Debugging** — "which model wrote this?" answered in one command
 - **Solo devs** — never wonder "why did I do that?" six months later
+
+## Why not just use `git log` or `git blame`?
+
+| | `git log` | `git blame` | **gitwhy** |
+|---|---|---|---|
+| Shows what changed | ✅ | ✅ | ✅ |
+| Shows who changed it | ✅ | ✅ | ✅ |
+| Shows **why** it changed | ❌ | ❌ | ✅ |
+| Captures AI model used | ❌ | ❌ | ✅ |
+| Links ticket/spec | ❌ | ❌ | ✅ |
+| Distinguishes human vs AI | ❌ | ❌ | ✅ |
+| Zero-friction (plain `git commit`) | ✅ | ✅ | ✅ |
+
+`git log` and `git blame` tell you the **what** and **who**. gitwhy adds the **why**, **what model**, and **what spec** — the context that matters six months later when you're debugging AI-generated code.
 
 ## How it works
 
