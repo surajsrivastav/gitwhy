@@ -224,6 +224,8 @@ func hasProvenanceFlags() bool {
 // ordered by specificity (most specific first).
 var envModelVars = []string{
 	"CLAUDE_CODE_MODEL",
+	"COPILOT_AGENT_MODEL",
+	"COPILOT_MODEL",
 	"ANTHROPIC_MODEL",
 	"OPENAI_MODEL",
 	"CLAUDE_MODEL",
@@ -234,6 +236,7 @@ var envModelVars = []string{
 }
 
 var envPromptVars = []string{
+	"COPILOT_AGENT_PROMPT",
 	"GITWHY_PROMPT",
 	"GHW_PROMPT",
 }
@@ -241,13 +244,16 @@ var envPromptVars = []string{
 // resolveAgent tries to detect the AI agent from the environment.
 // It parses AI_AGENT (e.g. "claude-code/2.1.126/agent") and returns the
 // tool name (e.g. "claude-code"), which becomes "agent:claude-code" in the record.
+// Falls back to Copilot detection via COPILOT_AGENT_MODEL or COPILOT_MODEL.
 func resolveAgent() string {
-	v := os.Getenv("AI_AGENT")
-	if v == "" {
-		return ""
+	if v := os.Getenv("AI_AGENT"); v != "" {
+		parts := strings.SplitN(v, "/", 2)
+		return parts[0]
 	}
-	parts := strings.SplitN(v, "/", 2)
-	return parts[0]
+	if os.Getenv("COPILOT_AGENT_MODEL") != "" || os.Getenv("COPILOT_MODEL") != "" {
+		return "copilot"
+	}
+	return ""
 }
 
 // resolveModel tries to auto-detect the model name from the environment.
