@@ -9,7 +9,7 @@ builds:
   - binary: ghw
     ldflags:
       - -s -w
-      - -X main.commit={{.ShortCommit}}
+      - -X main.commit={{.Tag}}
       - -X main.date={{.Date}}
     env:
       - CGO_ENABLED=0
