@@ -1,7 +1,6 @@
 package cmd
 
 import (
-	"bufio"
 	"fmt"
 	"os"
 	"os/exec"
@@ -257,33 +256,14 @@ func resolveAgent() string {
 }
 
 // resolveModel tries to auto-detect the model name from the environment.
-// If detection is ambiguous or nothing is found, it prompts the user interactively.
-// Returns the empty string if detection fails and prompting is not possible.
+// Returns the first match in envModelVars priority order, or empty string.
 func resolveModel() string {
-	sources := make(map[string]string) // value → env var name
-
 	for _, env := range envModelVars {
 		if v := os.Getenv(env); v != "" {
-			sources[v] = env
-		}
-	}
-
-	switch len(sources) {
-	case 0:
-		return promptModel("")
-	case 1:
-		for v := range sources {
-			fmt.Fprintf(os.Stderr, "  gitwhy: auto-detected model %q from %s\n", v, sources[v])
+			fmt.Fprintf(os.Stderr, "  gitwhy: auto-detected model %q from %s\n", v, env)
 			return v
 		}
-	default:
-		fmt.Fprintf(os.Stderr, "  gitwhy: multiple model candidates found\n")
-		for v, env := range sources {
-			fmt.Fprintf(os.Stderr, "    - %s (from %s)\n", v, env)
-		}
-		return promptModel("")
 	}
-
 	return ""
 }
 
@@ -298,37 +278,3 @@ func resolvePrompt() string {
 	return ""
 }
 
-// promptModel asks the user to enter a model name interactively.
-// If no terminal is available (piped input), returns empty string.
-func promptModel(suggestion string) string {
-	if !isTerminal() {
-		return ""
-	}
-
-	if suggestion != "" {
-		fmt.Fprintf(os.Stderr, "  gitwhy: enter model name [%s]: ", suggestion)
-	} else {
-		fmt.Fprint(os.Stderr, "  gitwhy: enter model name (or leave empty): ")
-	}
-
-	reader := bufio.NewReader(os.Stdin)
-	input, err := reader.ReadString('\n')
-	if err != nil {
-		return ""
-	}
-
-	input = strings.TrimSpace(input)
-	if input == "" {
-		return suggestion
-	}
-	return input
-}
-
-// isTerminal returns true if stdin is a terminal (interactive session).
-func isTerminal() bool {
-	info, err := os.Stdin.Stat()
-	if err != nil {
-		return false
-	}
-	return info.Mode()&os.ModeCharDevice != 0
-}
