@@ -912,6 +912,16 @@ func TestCommitCmdWithProvenance(t *testing.T) {
 	if !strings.Contains(output, "gitwhy: provenance recorded") {
 		t.Errorf("expected provenance recording message, got: %s", output)
 	}
+
+	// After a successful commit with provenance, last-capture receipt must exist.
+	lastCapturePath := filepath.Join(tmpDir, ".gitwhy", "last-capture")
+	data, err := os.ReadFile(lastCapturePath)
+	if err != nil {
+		t.Fatalf("expected .gitwhy/last-capture to exist after commit with provenance: %v", err)
+	}
+	if !strings.Contains(string(data), "commit") {
+		t.Errorf("expected last-capture to contain 'commit' field, got: %s", data)
+	}
 }
 
 func TestCommitCmdWithoutProvenance(t *testing.T) {
@@ -1318,7 +1328,7 @@ func setupTestRepo(t *testing.T) string {
 	return tmpDir
 }
 
-// Blocker 1: Hook installation — clean repo installs hook with gitwhy signature.
+// Blocker 1: Hook installation — clean repo installs hook with gitwhy signature and no 2>/dev/null.
 func TestInstallHookCleanRepo(t *testing.T) {
 	tmpDir := setupTestRepo(t)
 	if err := installHook(tmpDir); err != nil {
@@ -1329,8 +1339,12 @@ func TestInstallHookCleanRepo(t *testing.T) {
 	if err != nil {
 		t.Fatal("expected hook to exist")
 	}
-	if !strings.Contains(string(data), hookSignature) {
+	hook := string(data)
+	if !strings.Contains(hook, hookSignature) {
 		t.Error("expected hook to be signed as gitwhy")
+	}
+	if strings.Contains(hook, "2>/dev/null") {
+		t.Error("hook must not contain '2>/dev/null' — errors should surface")
 	}
 }
 
@@ -1360,7 +1374,7 @@ func TestInstallHookBackupsForeignHook(t *testing.T) {
 	}
 }
 
-// Blocker 1: Hook installation — re-init is idempotent.
+// Blocker 1: Hook installation — re-init always overwrites and never creates a backup of the gitwhy hook.
 func TestInstallHookIdempotent(t *testing.T) {
 	tmpDir := setupTestRepo(t)
 	if err := installHook(tmpDir); err != nil {
@@ -1372,6 +1386,14 @@ func TestInstallHookIdempotent(t *testing.T) {
 	bakPath := filepath.Join(tmpDir, ".git", "hooks", ".post-commit.bak")
 	if _, err := os.Stat(bakPath); err == nil {
 		t.Error("re-init should not create a .bak of a gitwhy hook")
+	}
+	hookPath := filepath.Join(tmpDir, ".git", "hooks", "post-commit")
+	data, err := os.ReadFile(hookPath)
+	if err != nil {
+		t.Fatal("expected hook to exist after re-init")
+	}
+	if strings.Contains(string(data), "2>/dev/null") {
+		t.Error("hook must not contain '2>/dev/null' after re-init")
 	}
 }
 

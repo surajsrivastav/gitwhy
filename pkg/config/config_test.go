@@ -5,6 +5,7 @@ import (
 	"path/filepath"
 	"strings"
 	"testing"
+	"time"
 )
 
 func TestDefaultConfig(t *testing.T) {
@@ -356,5 +357,86 @@ func TestBackendConstants(t *testing.T) {
 	}
 	if BackendMetadata != "metadata" {
 		t.Errorf("unexpected BackendMetadata value")
+	}
+}
+
+func TestWriteAndReadLastCapture(t *testing.T) {
+	tmpDir := t.TempDir()
+
+	if err := WriteLastCapture(tmpDir, "abc1234567890", "git-notes"); err != nil {
+		t.Fatalf("WriteLastCapture() error = %v", err)
+	}
+
+	receipt, err := ReadLastCapture(tmpDir)
+	if err != nil {
+		t.Fatalf("ReadLastCapture() error = %v", err)
+	}
+	if receipt == nil {
+		t.Fatal("expected non-nil receipt")
+	}
+	if receipt.Commit != "abc1234567890" {
+		t.Errorf("expected commit %q, got %q", "abc1234567890", receipt.Commit)
+	}
+	if receipt.Backend != "git-notes" {
+		t.Errorf("expected backend %q, got %q", "git-notes", receipt.Backend)
+	}
+	if receipt.Timestamp == "" {
+		t.Error("expected non-empty timestamp")
+	}
+	// Verify timestamp parses as RFC3339.
+	if _, err := time.Parse(time.RFC3339, receipt.Timestamp); err != nil {
+		t.Errorf("timestamp not valid RFC3339: %v", err)
+	}
+}
+
+func TestReadLastCaptureMissing(t *testing.T) {
+	tmpDir := t.TempDir()
+
+	receipt, err := ReadLastCapture(tmpDir)
+	if err != nil {
+		t.Fatalf("ReadLastCapture() error = %v (expected nil, nil)", err)
+	}
+	if receipt != nil {
+		t.Errorf("expected nil receipt for missing file, got %+v", receipt)
+	}
+}
+
+func TestAppendCaptureError(t *testing.T) {
+	tmpDir := t.TempDir()
+
+	if err := AppendCaptureError(tmpDir, "aaa111", "backend failure"); err != nil {
+		t.Fatalf("first AppendCaptureError() error = %v", err)
+	}
+
+	count, err := CountCaptureErrors(tmpDir)
+	if err != nil {
+		t.Fatalf("CountCaptureErrors() error = %v", err)
+	}
+	if count != 1 {
+		t.Errorf("expected 1 error line, got %d", count)
+	}
+
+	if err := AppendCaptureError(tmpDir, "bbb222", "another failure"); err != nil {
+		t.Fatalf("second AppendCaptureError() error = %v", err)
+	}
+
+	count, err = CountCaptureErrors(tmpDir)
+	if err != nil {
+		t.Fatalf("CountCaptureErrors() error = %v", err)
+	}
+	if count != 2 {
+		t.Errorf("expected 2 error lines, got %d", count)
+	}
+}
+
+func TestCountCaptureErrorsMissing(t *testing.T) {
+	tmpDir := t.TempDir()
+
+	count, err := CountCaptureErrors(tmpDir)
+	if err != nil {
+		t.Fatalf("CountCaptureErrors() error = %v (expected 0, nil)", err)
+	}
+	if count != 0 {
+		t.Errorf("expected 0 for missing file, got %d", count)
 	}
 }

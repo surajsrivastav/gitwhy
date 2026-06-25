@@ -70,6 +70,7 @@ func init() {
 	rootCmd.AddCommand(logCmd)
 	rootCmd.AddCommand(diffCmd)
 	rootCmd.AddCommand(auditCmd)
+	rootCmd.AddCommand(statusCmd)
 	rootCmd.AddCommand(versionCmd)
 }
 
@@ -106,7 +107,7 @@ func isPassthrough(args []string) bool {
 	knownCommands := map[string]bool{
 		"commit": true, "init": true, "config": true,
 		"why": true, "log": true, "diff": true, "audit": true,
-		"version": true,
+		"status": true, "version": true,
 	}
 
 	if knownCommands[args[0]] {

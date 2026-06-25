@@ -84,6 +84,10 @@ automatically shared with the whole team.`,
 			}
 		}
 
+		if err := writeGitignore(repoPath); err != nil {
+			fmt.Fprintf(os.Stderr, "  warning: failed to write .gitwhy/.gitignore: %v\n", err)
+		}
+
 		if !initNoNotesSync {
 			if err := configureNotesSharing(repoPath, initRemote); err != nil {
 				fmt.Fprintf(os.Stderr, "  warning: notes sharing not configured: %v\n", err)
@@ -216,8 +220,7 @@ func installHook(repoPath string) error {
 
 	switch detectHook(hookPath) {
 	case hookGitwhy:
-		fmt.Printf("  hook:    post-commit hook already installed (skipping)\n")
-		return nil
+		// Always overwrite so re-running ghw init updates the hook to the latest template.
 	case hookForeign:
 		bakPath := filepath.Join(hooksDir, ".post-commit.bak")
 		if err := os.Rename(hookPath, bakPath); err != nil {
@@ -226,16 +229,41 @@ func installHook(repoPath string) error {
 		fmt.Fprintf(os.Stderr, "  warning: backed up existing hook to %s\n", bakPath)
 	}
 
+	version := commitVersion
+	if version == "" {
+		version = "dev"
+	}
+	date := buildDate
+	if date == "" {
+		date = "unknown"
+	}
+
 	hookContent := fmt.Sprintf(`#!/bin/sh
-# gitwhy auto-capture hook — installed by ghw init
+# gitwhy auto-capture hook — installed by ghw@%s on %s
 # Records provenance metadata after every git commit.
 # Tries PATH first, falls back to the path at install time.
-GHW_CAPTURE=1 ghw commit 2>/dev/null || GHW_CAPTURE=1 %s commit 2>/dev/null || true
-`, ghwPath)
+GHW_CAPTURE=1 ghw commit || GHW_CAPTURE=1 %s commit || true
+`, version, date, ghwPath)
 
 	if err := os.WriteFile(hookPath, []byte(hookContent), 0755); err != nil {
 		return fmt.Errorf("write hook: %w", err)
 	}
 
+	fmt.Printf("  hook:    post-commit hook installed\n")
+	return nil
+}
+
+// writeGitignore writes (unconditionally) a .gitwhy/.gitignore that prevents
+// gitwhy local-state files from being accidentally committed.
+func writeGitignore(repoPath string) error {
+	dir := config.ConfigDir(repoPath)
+	if err := os.MkdirAll(dir, 0755); err != nil {
+		return fmt.Errorf("create config dir: %w", err)
+	}
+	content := "# gitwhy local state — do not commit\nlast-capture\ncapture-errors.log\nsession.yaml\n"
+	gitignorePath := filepath.Join(dir, config.GitignoreFile)
+	if err := os.WriteFile(gitignorePath, []byte(content), 0644); err != nil {
+		return fmt.Errorf("write .gitignore: %w", err)
+	}
 	return nil
 }

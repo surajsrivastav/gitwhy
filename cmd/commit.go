@@ -188,10 +188,14 @@ configured storage backend.`,
 			}
 
 			if err := backend.Store(record); err != nil {
+				if isCapture {
+					_ = config.AppendCaptureError(repoPath, commitHash, err.Error())
+				}
 				return fmt.Errorf("store provenance record: %w", err)
 			}
 
 			fmt.Printf("  gitwhy: provenance recorded (%s backend)\n", backend.Name())
+			_ = config.WriteLastCapture(repoPath, commitHash, backend.Name())
 		}
 
 		return nil
