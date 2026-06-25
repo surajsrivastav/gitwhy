@@ -42,6 +42,8 @@ var configGetCmd = &cobra.Command{
 		switch args[0] {
 		case "backend":
 			fmt.Println(cfg.Backend)
+		case "default_model":
+			fmt.Println(cfg.DefaultModel)
 		default:
 			return fmt.Errorf("unknown config key: %s", args[0])
 		}
@@ -73,6 +75,8 @@ var configSetCmd = &cobra.Command{
 			default:
 				return fmt.Errorf("invalid backend: %s (valid: git-notes, file, metadata)", value)
 			}
+		case "default_model":
+			cfg.DefaultModel = value
 		default:
 			return fmt.Errorf("unknown config key: %s", key)
 		}

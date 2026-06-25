@@ -102,10 +102,13 @@ configured storage backend.`,
 
 			originStr := commitFlag.origin
 			if originStr == "" {
-				if by != "" && by != "human" {
-					originStr = "spec"
-				} else {
+				switch {
+				case by == "human":
 					originStr = "human"
+				case by != "":
+					originStr = "spec"
+				default:
+					originStr = string(provenance.OriginUnknown)
 				}
 			}
 
@@ -125,6 +128,9 @@ configured storage backend.`,
 			}
 			if model == "" {
 				model = resolveModel()
+			}
+			if model == "" {
+				model = cfg.DefaultModel
 			}
 
 			prompt := commitFlag.prompt
@@ -149,6 +155,25 @@ configured storage backend.`,
 			record.SetContext(commitFlag.ticket, commitFlag.prompt, model)
 
 			autoFillContext(record, repoPath, intentSet, ticketSet, cfg.Summary)
+
+			if record.Intent.Summary == "" {
+				record.Intent.Summary = "unknown"
+			}
+			if record.Intent.Origin == "" {
+				record.Intent.Origin = provenance.OriginUnknown
+			}
+			if record.Context.Model == "" {
+				record.Context.Model = "unknown"
+			}
+			if record.Context.Ticket == "" {
+				record.Context.Ticket = "unknown"
+			}
+			if record.Context.Prompt == "" {
+				record.Context.Prompt = "unknown"
+			}
+			if record.Context.Branch == "" {
+				record.Context.Branch = "unknown"
+			}
 
 			factory := storage.NewFactory()
 			factory.Register("git-notes", storage.NewGitNotesBackend(repoPath))
@@ -191,6 +216,7 @@ func hasProvenanceFlags() bool {
 // envModelVars lists environment variables checked for model auto-detection,
 // ordered by specificity (most specific first).
 var envModelVars = []string{
+	"CLAUDE_CODE_MODEL",
 	"ANTHROPIC_MODEL",
 	"OPENAI_MODEL",
 	"CLAUDE_MODEL",

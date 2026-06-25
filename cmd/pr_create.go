@@ -60,19 +60,28 @@ alongside the PR for future reference.`,
 				return fmt.Errorf("find repo: %w", err)
 			}
 
-			attribution := provenance.AttributionHuman
+			attribution := provenance.AttributionUnknown
 			if prCreateFlags.agent != "" {
 				attribution = provenance.AgentAttribution(prCreateFlags.agent)
 			}
 
 			originStr := prCreateFlags.origin
 			if originStr == "" {
-				originStr = "human"
+				if prCreateFlags.agent != "" {
+					originStr = "spec"
+				} else {
+					originStr = string(provenance.OriginUnknown)
+				}
+			}
+
+			intent := prCreateFlags.intent
+			if intent == "" {
+				intent = "unknown"
 			}
 
 			record := provenance.NewRecord(provenance.TargetPR, prNumber)
 			record.SetAttribution(attribution)
-			record.SetIntent(prCreateFlags.intent, provenance.OriginType(originStr), prCreateFlags.spec, "")
+			record.SetIntent(intent, provenance.OriginType(originStr), prCreateFlags.spec, "")
 
 			cfg, err := config.Load(repoPath)
 			if err != nil {

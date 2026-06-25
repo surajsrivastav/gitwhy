@@ -25,8 +25,9 @@ const (
 )
 
 type Config struct {
-	Backend  StorageBackend `yaml:"backend"`
-	RepoPath string         `yaml:"-"`
+	Backend      StorageBackend `yaml:"backend"`
+	RepoPath     string         `yaml:"-"`
+	DefaultModel string         `yaml:"default_model,omitempty"`
 
 	GitNotes    *GitNotesConfig    `yaml:"git_notes,omitempty"`
 	File        *FileConfig        `yaml:"file,omitempty"`

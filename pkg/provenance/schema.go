@@ -21,6 +21,7 @@ const (
 	AttributionHuman    AttributionType = "human"
 	AttributionCopilot  AttributionType = "copilot"
 	AttributionPair     AttributionType = "pair"
+	AttributionUnknown  AttributionType = "unknown"
 )
 
 func AgentAttribution(name string) AttributionType {
@@ -36,6 +37,7 @@ const (
 	OriginTemplate OriginType = "template"
 	OriginUpstream OriginType = "upstream"
 	OriginAI       OriginType = "ai"
+	OriginUnknown  OriginType = "unknown"
 )
 
 type Target struct {
@@ -78,7 +80,7 @@ func NewRecord(targetType TargetType, ref string) *Record {
 			Ref:  ref,
 		},
 		Attribution: Attribution{
-			By:        AttributionHuman,
+			By:        AttributionUnknown,
 			Timestamp: time.Now().UTC().Format(time.RFC3339),
 		},
 	}

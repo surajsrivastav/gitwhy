@@ -18,8 +18,8 @@ func TestNewRecord(t *testing.T) {
 	if record.Target.Ref != ref {
 		t.Errorf("expected ref %q, got %q", ref, record.Target.Ref)
 	}
-	if record.Attribution.By != AttributionHuman {
-		t.Errorf("expected default attribution %q, got %q", AttributionHuman, record.Attribution.By)
+	if record.Attribution.By != AttributionUnknown {
+		t.Errorf("expected default attribution %q, got %q", AttributionUnknown, record.Attribution.By)
 	}
 	if record.Attribution.Timestamp == "" {
 		t.Error("expected timestamp to be set")
@@ -332,6 +332,9 @@ func TestOriginTypes(t *testing.T) {
 	if OriginAI != "ai" {
 		t.Errorf("unexpected OriginAI: %q", OriginAI)
 	}
+	if OriginUnknown != "unknown" {
+		t.Errorf("unexpected OriginUnknown: %q", OriginUnknown)
+	}
 }
 
 func TestTargetTypes(t *testing.T) {
@@ -352,5 +355,8 @@ func TestAttributionTypes(t *testing.T) {
 	}
 	if AttributionPair != "pair" {
 		t.Errorf("unexpected AttributionPair: %q", AttributionPair)
+	}
+	if AttributionUnknown != "unknown" {
+		t.Errorf("unexpected AttributionUnknown: %q", AttributionUnknown)
 	}
 }
