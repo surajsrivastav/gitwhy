@@ -84,6 +84,9 @@ configured storage backend.`,
 			if by == "" && isCapture && cfg.AutoCapture != nil && cfg.AutoCapture.DefaultBy != "" {
 				by = cfg.AutoCapture.DefaultBy
 			}
+			if by == "" {
+				by = resolveAgent()
+			}
 
 			if by != "" {
 				switch strings.ToLower(by) {
@@ -229,6 +232,18 @@ var envModelVars = []string{
 var envPromptVars = []string{
 	"GITWHY_PROMPT",
 	"GHW_PROMPT",
+}
+
+// resolveAgent tries to detect the AI agent from the environment.
+// It parses AI_AGENT (e.g. "claude-code/2.1.126/agent") and returns the
+// tool name (e.g. "claude-code"), which becomes "agent:claude-code" in the record.
+func resolveAgent() string {
+	v := os.Getenv("AI_AGENT")
+	if v == "" {
+		return ""
+	}
+	parts := strings.SplitN(v, "/", 2)
+	return parts[0]
 }
 
 // resolveModel tries to auto-detect the model name from the environment.

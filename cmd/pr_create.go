@@ -60,14 +60,18 @@ alongside the PR for future reference.`,
 				return fmt.Errorf("find repo: %w", err)
 			}
 
+			agent := prCreateFlags.agent
+			if agent == "" {
+				agent = resolveAgent()
+			}
 			attribution := provenance.AttributionUnknown
-			if prCreateFlags.agent != "" {
-				attribution = provenance.AgentAttribution(prCreateFlags.agent)
+			if agent != "" {
+				attribution = provenance.AgentAttribution(agent)
 			}
 
 			originStr := prCreateFlags.origin
 			if originStr == "" {
-				if prCreateFlags.agent != "" {
+				if agent != "" {
 					originStr = "spec"
 				} else {
 					originStr = string(provenance.OriginUnknown)
