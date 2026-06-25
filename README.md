@@ -21,6 +21,16 @@ It automatically captures who (or what) made the change, which AI model was invo
 
 A recording of the full workflow (init → commit → `ghw why`) is coming soon. In the meantime, open `demo.html` locally or view it on GitHub Pages to see the annotated commit flow in action.
 
+## Vision
+
+As software delivery becomes agentic, code history stops being enough.
+When thousands of agents are committing code, teams need a semantic memory layer that explains why a change happened, what spec or goal it served, and how to trace incidents back to the originating intent.
+
+gitwhy's long-term goal is to become that semantic traceability layer:
+- Connect commits to agent intent (specs, prompts, tickets, goals)
+- Make agent-written changes explainable to humans and other agents
+- Help incident responders trace failures back through code and intent, not just diffs
+
 ## Why gitwhy?
 
 **The problem:** AI-generated code is everywhere. Copilot, Claude, Cursor — every commit is a mix of human and AI work. Months later, nobody knows which model produced what, why a change was made, or what spec it came from. Audit trails are empty. Debugging is guesswork.
