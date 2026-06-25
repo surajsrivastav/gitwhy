@@ -17,6 +17,8 @@ It automatically captures who (or what) made the change, which AI model was invo
 
 ## Demo
 
+![gitwhy demo](docs/demo.gif)
+
 > **[Try the interactive terminal demo →](https://surajsrivastav.github.io/gitwhy/demo.html)**
 
 ## Vision
