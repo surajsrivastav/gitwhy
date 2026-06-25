@@ -1,3 +1,5 @@
+> **Beta** — gitwhy is under active development. APIs and config format may change between releases. Feedback welcome via [GitHub Issues](https://github.com/surajsrivastav/gitwhy/issues).
+
 # gitwhy (`ghw`)
 
 [![Go Version](https://img.shields.io/github/go-mod/go-version/surajsrivastav/gitwhy?style=flat-square&logo=go)](https://golang.org/dl/)
