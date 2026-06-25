@@ -17,9 +17,7 @@ It automatically captures who (or what) made the change, which AI model was invo
 
 ## Demo
 
-> **[Try the interactive terminal demo →](demo.html)**
-
-A recording of the full workflow (init → commit → `ghw why`) is coming soon. In the meantime, open `demo.html` locally or view it on GitHub Pages to see the annotated commit flow in action.
+> **[Try the interactive terminal demo →](https://surajsrivastav.github.io/gitwhy/demo.html)**
 
 ## Vision
 
