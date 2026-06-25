@@ -53,29 +53,90 @@ A recording of the full workflow (init → commit → `ghw why`) is coming soon.
 
 ```bash
 cd your-repo
-ghw init                        # one-time setup
-git add . && git commit -m "feat: add login"   # business as usual
-ghw why HEAD                    # see what gitwhy captured
+ghw init                                          # one-time setup
+git add . && git commit -m "feat: add login"      # business as usual
+ghw why HEAD                                      # see what gitwhy captured
+```
+
+```
+  gitwhy provenance record
+  ─────────────────────────
+  schema:    gitwhy/v1
+  target:    commit a3f1d8c
+  by:        agent:claude-code
+  when:      2026-06-25T10:00:00Z
+
+  intent:    add login
+  origin:    spec
+
+  context:
+    ticket:   PROJ-42
+    prompt:   unknown
+    model:    claude-sonnet-4-6
+    branch:   feature/PROJ-42-login
 ```
 
 ## What gets captured automatically
 
-| You write code on... | gitwhy captures... |
-|---|---|
-| `feature/Ticket-42-login` | Ticket `Ticket-42` — parsed from branch name |
-| `feat: add login handler` | Intent `"add login handler"` — parsed from conventional commit, or summarized by your LLM CLI |
-| ...with Claude open | Model `claude-sonnet-4` — auto-detected from `$CLAUDE_MODEL` |
-| ...and Copilot running | Attribution `copilot` — from `--by` flag or config |
+Just write a normal commit message. gitwhy parses it without any flags.
 
-You get a record like:
+```bash
+git commit -m "feat: add login handler"
+```
 
 ```
-intent:    add login handler
-origin:    spec
-context:
-    ticket:   Ticket-42
-    branch:   feature/Ticket-42-login
-    model:    claude-sonnet-4
+intent:    add login handler      ← from commit message description
+origin:    spec                   ← inferred from "feat" type
+ticket:    PROJ-42                ← parsed from branch feature/PROJ-42-login
+model:     claude-sonnet-4-6      ← detected from $COPILOT_MODEL / $CLAUDE_CODE_MODEL
+by:        agent:claude-code      ← detected from $AI_AGENT env var
+branch:    feature/PROJ-42-login  ← from git
+```
+
+### Commit message → intent
+
+gitwhy reads [conventional commit](https://www.conventionalcommits.org/) format and maps it to provenance fields automatically:
+
+| Commit message | intent | origin |
+|---|---|---|
+| `feat: add login handler` | `add login handler` | `spec` |
+| `fix: null pointer in auth` | `null pointer in auth` | `spec` |
+| `perf: cache token lookup` | `cache token lookup` | `spec` |
+| `chore: update deps` | `update deps` | `human` |
+| `docs: add API examples` | `add API examples` | `human` |
+| `test: cover edge cases` | `cover edge cases` | `human` |
+| `feat!: breaking auth change` | `BREAKING: breaking auth change` | `spec` |
+
+Non-conventional messages fall back to LLM summarization (if configured) then `"unknown"`.
+
+### Branch name → ticket
+
+gitwhy scans the branch name for a `PROJECT-123` pattern and sets it as the ticket automatically. No flags needed.
+
+```
+feature/PROJ-42-login   →  ticket: PROJ-42
+fix/AUTH-7-token-null   →  ticket: AUTH-7
+main                    →  ticket: unknown
+```
+
+### Agent and model → attribution
+
+gitwhy reads environment variables set by AI tools at commit time:
+
+| Tool | Env var read | Captured as |
+|---|---|---|
+| Claude Code | `AI_AGENT=claude-code/...` | `by: agent:claude-code` |
+| Claude Code | `CLAUDE_CODE_MODEL` | `model: claude-sonnet-4-6` |
+| GitHub Copilot CLI | `COPILOT_AGENT_MODEL` or `COPILOT_MODEL` | `by: copilot`, `model: gpt-4o` |
+| GitHub Copilot CLI | `COPILOT_AGENT_PROMPT` | `prompt: ...` |
+| Any tool | `ANTHROPIC_MODEL`, `OPENAI_MODEL`, `GITHUB_MODEL`, `AI_MODEL` | `model: ...` |
+
+If no env var is found, `model` falls back to `default_model` in `.gitwhy/config.yaml`, then `"unknown"`.
+
+Set a default model once, and every commit picks it up:
+
+```bash
+ghw config set default_model claude-sonnet-4-6
 ```
 
 ## Commands
@@ -83,11 +144,13 @@ context:
 | If you want to... | Run this |
 |---|---|
 | Set up gitwhy in a repo | `ghw init` |
-| Commit with explicit flags | `ghw commit --by copilot --ticket Ticket-42` |
+| Check hook health and last capture | `ghw status` |
+| Commit with explicit flags | `ghw commit --by copilot --ticket PROJ-42` |
 | See provenance for a commit | `ghw why HEAD` |
 | Browse annotated history | `ghw log --why` |
 | Toggle LLM summary on/off | `ghw config set summary.enabled false` |
 | Change LLM command | `ghw config set summary.command claude` |
+| Set default model | `ghw config set default_model claude-sonnet-4-6` |
 | Export all records | `ghw audit export` |
 
 ## Flags (all optional)
