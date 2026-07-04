@@ -158,25 +158,6 @@ configured storage backend.`,
 
 			autoFillContext(record, repoPath, intentSet, ticketSet, cfg.Summary)
 
-			if record.Intent.Summary == "" {
-				record.Intent.Summary = "unknown"
-			}
-			if record.Intent.Origin == "" {
-				record.Intent.Origin = provenance.OriginUnknown
-			}
-			if record.Context.Model == "" {
-				record.Context.Model = "unknown"
-			}
-			if record.Context.Ticket == "" {
-				record.Context.Ticket = "unknown"
-			}
-			if record.Context.Prompt == "" {
-				record.Context.Prompt = "unknown"
-			}
-			if record.Context.Branch == "" {
-				record.Context.Branch = "unknown"
-			}
-
 			factory := storage.NewFactory()
 			factory.Register("git-notes", storage.NewGitNotesBackend(repoPath))
 			factory.Register("file", storage.NewFileBackend(config.ConfigDir(repoPath)))

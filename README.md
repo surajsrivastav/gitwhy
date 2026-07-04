@@ -1,4 +1,4 @@
-> **Beta** — gitwhy is under active development. APIs and config format may change between releases. Feedback welcome via [GitHub Issues](https://github.com/surajsrivastav/gitwhy/issues).
+> **Beta** — gitwhy is under active development. Feedback welcome via [GitHub Issues](https://github.com/surajsrivastav/gitwhy/issues).
 
 # gitwhy (`ghw`)
 
@@ -7,67 +7,22 @@
 [![Test](https://img.shields.io/github/actions/workflow/status/surajsrivastav/gitwhy/ci.yml?branch=master&style=flat-square&logo=githubactions&label=tests)](https://github.com/surajsrivastav/gitwhy/actions/workflows/ci.yml)
 [![Build](https://img.shields.io/github/actions/workflow/status/surajsrivastav/gitwhy/release.yml?style=flat-square&logo=githubactions&label=build)](https://github.com/surajsrivastav/gitwhy/actions/workflows/release.yml)
 [![Release](https://img.shields.io/github/v/release/surajsrivastav/gitwhy?style=flat-square&logo=github)](https://github.com/surajsrivastav/gitwhy/releases)
-[![Go Report Card](https://goreportcard.com/badge/github.com/surajsrivastav/gitwhy?style=flat-square)](https://goreportcard.com/report/github.com/surajsrivastav/gitwhy)
-[![Coverage](https://codecov.io/gh/surajsrivastav/gitwhy/branch/master/graph/badge.svg)](https://codecov.io/gh/surajsrivastav/gitwhy)
 [![Stars](https://img.shields.io/github/stars/surajsrivastav/gitwhy?style=flat-square)](https://github.com/surajsrivastav/gitwhy/stargazers)
-
-![gitwhy architecture](docs/architecture.svg)
 
 Every `git commit` already knows *what* changed. gitwhy remembers *why*.
 
-It automatically captures who (or what) made the change, which AI model was involved, the ticket from your branch name, and a one-line summary — all from a plain `git commit`. No flags, no extra commands, no thinking about it.
+It drops a single post-commit hook into your repo. That hook is a passive listener — it catches the environment variables AI tools leave behind (`$CLAUDE_CODE_MODEL`, `$COPILOT_MODEL`, `$AI_AGENT`), parses your branch name for a ticket, reads your commit message for intent, and writes a provenance record to git-notes. All without you typing a single flag.
 
-## Demo
+**Two steps. Zero flags. Plain `git commit`.**
 
-![gitwhy demo](docs/demo.gif)
-
-> **[Try the interactive terminal demo →](https://surajsrivastav.github.io/gitwhy/demo.html)**
-
-## Vision
-
-As software delivery becomes agentic, code history stops being enough.
-When thousands of agents are committing code, teams need a semantic memory layer that explains why a change happened, what spec or goal it served, and how to trace incidents back to the originating intent.
-
-gitwhy's long-term goal is to become that semantic traceability layer:
-- Connect commits to agent intent (specs, prompts, tickets, goals)
-- Make agent-written changes explainable to humans and other agents
-- Help incident responders trace failures back through code and intent, not just diffs
-
-## Why gitwhy?
-
-**The problem:** AI-generated code is everywhere. Copilot, Claude, Cursor — every commit is a mix of human and AI work. Months later, nobody knows which model produced what, why a change was made, or what spec it came from. Audit trails are empty. Debugging is guesswork.
-
-**What gitwhy does:** Every `git commit` automatically captures provenance — the AI model, the ticket, the intent, the origin (human/spec/AI). Stored locally in git-notes. Zero friction. Plain `git commit` stays plain.
-
-**Who needs this:**
-- **Teams shipping AI-generated code** — prove what models produced what
-- **Compliance/audit** — trace every change back to a spec or prompt
-- **Debugging** — "which model wrote this?" answered in one command
-- **Solo devs** — never wonder "why did I do that?" six months later
-
-## Why not just use `git log` or `git blame`?
-
-| | `git log` | `git blame` | **gitwhy** |
-|---|---|---|---|
-| Shows what changed | ✅ | ✅ | ✅ |
-| Shows who changed it | ✅ | ✅ | ✅ |
-| Shows **why** it changed | ❌ | ❌ | ✅ |
-| Captures AI model used | ❌ | ❌ | ✅ |
-| Links ticket/spec | ❌ | ❌ | ✅ |
-| Distinguishes human vs AI | ❌ | ❌ | ✅ |
-| Zero-friction (plain `git commit`) | ✅ | ✅ | ✅ |
-
-`git log` and `git blame` tell you the **what** and **who**. gitwhy adds the **why**, **what model**, and **what spec** — the context that matters six months later when you're debugging AI-generated code.
-
-## How it works
-
-`ghw init` installs a post-commit hook. After that, every `git commit` silently records provenance in the background. That's it.
+## Quick start
 
 ```bash
-cd your-repo
-ghw init                                          # one-time setup
-git add . && git commit -m "feat: add login"      # business as usual
-ghw why HEAD                                      # see what gitwhy captured
+ghw init
+git commit -m "feat: add login handler"   # standard git, nothing special
+
+# Later — what actually happened here?
+ghw why HEAD
 ```
 
 ```
@@ -78,7 +33,7 @@ ghw why HEAD                                      # see what gitwhy captured
   by:        agent:claude-code
   when:      2026-06-25T10:00:00Z
 
-  intent:    add login
+  intent:    add login handler
   origin:    spec
 
   context:
@@ -87,6 +42,23 @@ ghw why HEAD                                      # see what gitwhy captured
     model:    claude-sonnet-4-6
     branch:   feature/PROJ-42-login
 ```
+
+That's the entire default workflow. `ghw init` once, then never think about it again.
+
+## How the hook works (the Agent Interceptor)
+
+`ghw init` installs a single script into `.git/hooks/post-commit`. Every time you (or an AI agent) run `git commit`, that hook fires automatically and silently captures:
+
+| What it sniffs | How |
+|---|---|
+| **Who / what agent** | Sniffs `$AI_AGENT`, `$COPILOT_AGENT_MODEL` — detects Claude Code, Copilot, Cursor, etc. |
+| **Which model** | Reads `$CLAUDE_CODE_MODEL`, `$COPILOT_MODEL`, `$ANTHROPIC_MODEL`, `$OPENAI_MODEL` |
+| **Why (intent)** | Pulls the subject line from your commit message |
+| **Ticket number** | Scans `git branch` for `PROJ-123` patterns |
+| **Origin (human vs spec)** | Infers from conventional commit type (`feat` → `spec`, `chore` → `human`) |
+| **Prompt (if AI)** | Captures `$COPILOT_AGENT_PROMPT` or `$CLAUDE_CODE_PROMPT` |
+
+All of these environment variables are ephemeral — they exist only while the AI tool is running and vanish the moment the process exits. The hook intercepts them before they disappear.
 
 ## What gets captured automatically
 
@@ -151,23 +123,50 @@ Set a default model once, and every commit picks it up:
 ghw config set default_model claude-sonnet-4-6
 ```
 
+## Why not just use `git log` or `git blame`?
+
+| | `git log` | `git blame` | **gitwhy** |
+|---|---|---|---|
+| Shows what changed | ✅ | ✅ | ✅ |
+| Shows who changed it | ✅ | ✅ | ✅ |
+| Shows **why** it changed | ❌ | ❌ | ✅ |
+| Captures AI model used | ❌ | ❌ | ✅ |
+| Links ticket/spec | ❌ | ❌ | ✅ |
+| Distinguishes human vs AI | ❌ | ❌ | ✅ |
+| Zero-friction (plain `git commit`) | ✅ | ✅ | ✅ |
+
+`git log` and `git blame` tell you the **what** and **who**. gitwhy adds the **why**, **what model**, and **what spec** — the context that matters six months later when you're debugging AI-generated code.
+
 ## Commands
 
 | If you want to... | Run this |
 |---|---|
-| Set up gitwhy in a repo | `ghw init` |
+| Set up the hook in a repo | `ghw init` |
 | Check hook health and last capture | `ghw status` |
-| Commit with explicit flags | `ghw commit --by copilot --ticket PROJ-42` |
 | See provenance for a commit | `ghw why HEAD` |
 | Browse annotated history | `ghw log --why` |
-| Toggle LLM summary on/off | `ghw config set summary.enabled false` |
-| Change LLM command | `ghw config set summary.command claude` |
-| Set default model | `ghw config set default_model claude-sonnet-4-6` |
 | Export all records | `ghw audit export` |
+| Set default model | `ghw config set default_model claude-sonnet-4-6` |
+| Toggle LLM summary | `ghw config set summary.enabled false` |
 
-## Flags (all optional)
+## Configuration
 
-Pass these to `ghw commit` when you want to override auto-detection:
+Tweak behavior in `.gitwhy/config.yaml`:
+
+```yaml
+backend: git-notes
+auto_capture:
+  enabled: true
+  default_by: agent:opencode
+summary:
+  enabled: true
+  command: llm
+  mode: filenames
+```
+
+## Advanced: Manual flags / overrides
+
+Everything above happens automatically. But if you ever need to override what the hook captured — for an edge case, a CI commit, or a manual annotation — pass flags to `ghw commit`:
 
 | Flag | What it does |
 |---|---|
@@ -181,19 +180,9 @@ Pass these to `ghw commit` when you want to override auto-detection:
 | `--model` | Model name (overrides env detection) |
 | `-m / --message` | Commit message |
 
-## Configuration
-
-Tweak behavior in `.gitwhy/config.yaml`:
-
-```yaml
-backend: git-notes                # how records are stored
-auto_capture:
-  enabled: true
-  default_by: agent:opencode      # default attribution for auto-capture
-summary:
-  enabled: true                   # generate intent via LLM
-  command: llm                    # any CLI that takes a prompt as last arg
-  mode: filenames                  # filenames | diff
+```bash
+# Override auto-detected values for a specific commit
+ghw commit --by human --intent "harden auth middleware" --ticket SEC-99
 ```
 
 ## Install
