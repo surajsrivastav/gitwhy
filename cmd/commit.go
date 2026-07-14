@@ -9,6 +9,7 @@ import (
 	"github.com/spf13/cobra"
 
 	"github.com/surajsrivastav/gitwhy/pkg/config"
+	"github.com/surajsrivastav/gitwhy/pkg/drift"
 	"github.com/surajsrivastav/gitwhy/pkg/provenance"
 	"github.com/surajsrivastav/gitwhy/pkg/storage"
 )
@@ -114,6 +115,14 @@ configured storage backend.`,
 				}
 			}
 
+			if commitFlag.spec != "" && commitFlag.specHash == "" && drift.IsURL(commitFlag.spec) {
+				if hash, err := drift.HashSpecAny(commitFlag.spec); err == nil {
+					commitFlag.specHash = hash
+				} else {
+					fmt.Fprintf(os.Stderr, "  gitwhy: warning: failed to hash spec %q: %v\n", commitFlag.spec, err)
+				}
+			}
+
 			intentSet := commitFlag.intent != ""
 			record.SetIntent(
 				commitFlag.intent,
@@ -133,6 +142,10 @@ configured storage backend.`,
 			}
 			if model == "" {
 				model = cfg.DefaultModel
+				if days, ok := cfg.ModelStaleDays(); ok && cfg.IsModelStale() {
+					fmt.Fprintf(os.Stderr,
+						"  gitwhy: default_model may be stale (set %d days ago). Run: ghw config set default_model <model>\n", days)
+				}
 			}
 
 			prompt := commitFlag.prompt
@@ -157,6 +170,7 @@ configured storage backend.`,
 			record.SetContext(commitFlag.ticket, commitFlag.prompt, model)
 
 			autoFillContext(record, repoPath, intentSet, ticketSet, cfg.Summary)
+			record.Seal()
 
 			factory := storage.NewFactory()
 			factory.Register("git-notes", storage.NewGitNotesBackend(repoPath))

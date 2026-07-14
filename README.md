@@ -145,9 +145,17 @@ ghw config set default_model claude-sonnet-4-6
 | Check hook health and last capture | `ghw status` |
 | See provenance for a commit | `ghw why HEAD` |
 | Browse annotated history | `ghw log --why` |
+| Track the model/ticket for this coding session | `ghw session start --model claude-sonnet-4-6 --ticket PROJ-42` |
 | Export all records | `ghw audit export` |
+| Filter/search records | `ghw audit search --model claude-sonnet-4-6` |
+| Find commits with no provenance record | `ghw audit gaps --fail-on-missing` |
+| Check records for tampering | `ghw audit verify` |
 | Set default model | `ghw config set default_model claude-sonnet-4-6` |
 | Toggle LLM summary | `ghw config set summary.enabled false` |
+
+> gitwhy tracks **developer provenance**, not certified compliance. See
+> [PRD.md](PRD.md#positioning-provenance-tracking-not-yet-compliance) for what
+> a compliance-ready tier would still need.
 
 ## Configuration
 

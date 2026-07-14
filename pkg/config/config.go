@@ -127,10 +127,15 @@ const (
 	BackendMetadata StorageBackend = "metadata"
 )
 
+// ModelStalenessThreshold is how long a default_model can go unchanged
+// before ghw warns at commit time that it may be stale.
+const ModelStalenessThreshold = 30 * 24 * time.Hour
+
 type Config struct {
-	Backend      StorageBackend `yaml:"backend"`
-	RepoPath     string         `yaml:"-"`
-	DefaultModel string         `yaml:"default_model,omitempty"`
+	Backend        StorageBackend `yaml:"backend"`
+	RepoPath       string         `yaml:"-"`
+	DefaultModel   string         `yaml:"default_model,omitempty"`
+	ModelUpdatedAt string         `yaml:"model_updated_at,omitempty"`
 
 	GitNotes    *GitNotesConfig    `yaml:"git_notes,omitempty"`
 	File        *FileConfig        `yaml:"file,omitempty"`
@@ -174,6 +179,26 @@ type SummaryConfig struct {
 	Enabled bool        `yaml:"enabled"`
 	Command string      `yaml:"command,omitempty"`
 	Mode    SummaryMode `yaml:"mode,omitempty"`
+}
+
+// ModelStaleDays returns how many days ago default_model was last updated,
+// and false if there's no default_model or no recorded timestamp to compare.
+func (c *Config) ModelStaleDays() (int, bool) {
+	if c.DefaultModel == "" || c.ModelUpdatedAt == "" {
+		return 0, false
+	}
+	t, err := time.Parse(time.RFC3339, c.ModelUpdatedAt)
+	if err != nil {
+		return 0, false
+	}
+	return int(time.Since(t) / (24 * time.Hour)), true
+}
+
+// IsModelStale reports whether default_model was set more than
+// ModelStalenessThreshold ago.
+func (c *Config) IsModelStale() bool {
+	days, ok := c.ModelStaleDays()
+	return ok && time.Duration(days)*24*time.Hour >= ModelStalenessThreshold
 }
 
 func DefaultConfig() *Config {
@@ -246,6 +271,15 @@ func SaveSession(repoPath string, session *SessionState) error {
 		return fmt.Errorf("write session: %w", err)
 	}
 
+	return nil
+}
+
+// ClearSession removes the session file, if present.
+func ClearSession(repoPath string) error {
+	err := os.Remove(SessionPath(repoPath))
+	if err != nil && !os.IsNotExist(err) {
+		return fmt.Errorf("remove session: %w", err)
+	}
 	return nil
 }
 

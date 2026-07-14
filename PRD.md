@@ -48,13 +48,16 @@ Detection rules:
 | Command | Description |
 |---------|-------------|
 | `ghw commit` | Commit with provenance flags and model auto-detection |
-| `ghw why <ref>` | Show provenance record for a commit |
+| `ghw why <ref>` | Show provenance record for a commit, including tamper-check status |
 | `ghw init` | Initialize gitwhy in a repository |
 | `ghw config` | Manage configuration |
+| `ghw session start/status/set/end` | Track the model/ticket/prompt active for the current coding session |
 | `ghw log` | Show commit log with intent annotations |
 | `ghw pr create/view/list` | PR operations with provenance |
-| `ghw diff` | Show diff with provenance context |
-| `ghw audit export/summary` | Export or summarize provenance records |
+| `ghw diff` | Show diff with provenance context, including spec drift |
+| `ghw audit export/search/summary` | Export, filter, or summarize provenance records |
+| `ghw audit gaps` | List commits with no provenance record (`--fail-on-missing` for CI) |
+| `ghw audit verify` | Batch-check every record's `record_hash` for tampering |
 
 ### 4. Storage Backends
 
@@ -63,21 +66,97 @@ Detection rules:
 
 ### 5. Drift Detection
 
-Detects when a tracked spec file has changed after code generation.
-Produces a drift report with severity, affected lines, and recommendations.
+Detects when a tracked spec has changed after code generation. `--spec` accepts
+a local file path, any http(s) URL, or a GitHub issue URL (fetched via the
+local `gh` CLI, no separate token needed). Produces a drift report with
+severity, affected lines, and recommendations.
+
+### 6. Session Tracking
+
+`ghw session start --model <model> --ticket <ticket>` writes
+`.gitwhy/session.yaml` (gitignored by default). The post-commit hook and
+`ghw commit` read the session file before falling back to environment-variable
+detection or `default_model`, so the model that actually wrote the code — not
+whichever model happens to be active when `git commit` runs — gets recorded.
+`ghw session status` shows the active session and its age; `ghw session set
+<field> <value>` updates a single field; `ghw session end` clears it.
+
+### 7. Coverage Gaps and Tamper Detection
+
+`ghw audit gaps [--since <date-or-ref>] [--fail-on-missing]` diffs the commits
+in range against stored provenance records and lists every commit with no
+record — the question a reviewer or CI gate actually needs answered. Wiring
+`--fail-on-missing` into a GitHub Actions job turns this into a merge gate.
+
+Every record is sealed with a `record_hash` (SHA-256 of its content) at write
+time. `ghw audit verify` batch-checks every record's hash and flags any that
+no longer matches — evidence that the note was edited outside of gitwhy after
+being recorded (e.g. a manual `git notes edit`). `ghw why` shows the
+per-record verification status. This detects tampering; it does not prevent
+it — anyone who can rewrite a note can also recompute a matching hash. See
+the Compliance Roadmap below for what closes that gap.
+
+### 8. Filtering and Search
+
+`ghw audit export` and the interactive `ghw audit search` (table output)
+both accept `--by`, `--model`, `--ticket`, `--origin`, and `--missing <field>`,
+composable with AND logic — e.g. "every commit attributed to
+`agent:claude-code` with no ticket set."
 
 ## Non-Goals
 
-- Real-time model tracking during editing sessions (captures only commit-time state)
+- Real-time model tracking during editing sessions (captures only commit-time
+  state, unless a `ghw session` was started)
 - Automatic detection of non-environment-based agent identities
 - Cross-validation of model name accuracy
+- Preventing tampering of stored records (see Compliance Roadmap — `record_hash`
+  detects tampering, it doesn't stop a determined actor with push access)
 
 ## Future Considerations
 
 - `--no-detect` flag to skip auto-detection entirely
-- Session tracking (`ghw start`) to capture model at coding time
 - Richer agent detection via parent process or config directory inspection
 - Git trailer integration for model info in commit message body
+- Linear / Jira spec adapters (GitHub Issues is implemented; see Drift Detection)
+
+## Positioning: Provenance Tracking, Not (Yet) Compliance
+
+gitwhy is a **developer provenance tracking** tool: it answers "who/what wrote
+this and why" for a single repository. It is not a compliance product today,
+and documentation should not imply otherwise. Specifically, gitwhy does not
+provide:
+
+| Requirement | Status |
+|---|---|
+| Tamper-evident records | Partial — `record_hash` *detects* edits after the fact; it does not cryptographically prevent them (no signing) |
+| Access controls on audit log | Not implemented — anyone with repo read access reads all notes |
+| Retention policy enforcement | Not implemented — no TTL or deletion controls |
+| Chain of custody | Not implemented — no signature or timestamp authority |
+| Queryable by auditor | Implemented — `ghw audit search`/`export` with `--by`/`--model`/`--ticket`/`--origin`/`--missing` filters |
+| Evidence of completeness (no gaps) | Implemented — `ghw audit gaps` |
+
+## Compliance Roadmap (Future Tier)
+
+A clearly-labeled "compliance" tier would need, in rough priority order:
+
+1. **Signed records** — GPG or OIDC-based signatures over each record (reusing
+   the committer's existing signing key where available), verified by
+   `ghw audit verify`/`ghw why` alongside the existing `record_hash` check.
+2. **Append-only storage option** — a signed commit chain (Certificate
+   Transparency-style) or an external WORM store (S3 Object Lock), so a
+   record can't be silently overwritten even with repo push access.
+3. **Role-based access to audit records** — scoping who can read provenance
+   notes independently of general repo read access.
+4. **Retention policy configuration** — TTL/deletion rules for provenance
+   data, configurable per-repo.
+5. **Auditor export with completeness attestation** — an export format that
+   states the commit range covered and asserts (via `ghw audit gaps`) that
+   no commits in that range are missing records.
+
+**Target framework:** SOC 2 Type II is the broadest-adoption framework for
+developer tooling; the CC7 (system operations) and CC8 (change management)
+Trust Services Criteria are the most directly relevant to provenance data and
+should anchor which of the above ships first.
 
 ### Nice-to-Have: Changed Files & Diff Stats
 
@@ -88,27 +167,17 @@ faster queries and richer context without resolving the commit diff. Files
 would be captured via `git diff-tree --root --name-only HEAD` and stats via
 `git diff-tree --root --shortstat HEAD`.
 
-### Nice-to-Have: Prompt Capture
+### Nice-to-Have: Prompt Truncation
 
-Capture the prompt the user supplied to the AI assistant during the coding
-session and store it (possibly in compressed/truncated form) in the provenance
-record's `context.prompt` field.
+`ghw session start --prompt` (see Session Tracking above) already captures
+the prompt into `context.prompt` for subsequent commits. Remaining
+nice-to-have: prompts can be very long (thousands of tokens), so storing the
+full text bloats records and slows storage/query. Auto-truncate to ~500
+characters with a `...` suffix and store a SHA-256 hash of the full prompt
+alongside the truncated text for integrity checks, without the full storage
+cost.
 
-**Challenges:**
-- Prompts can be very long (thousands of tokens) — storing the full text
-  bloats the record and makes storage/query slower
-- Capturing the prompt requires editor/IDE integration or a session-tracking
-  `ghw start` command — it's not available at commit time
-- Truncation (e.g. first 200 chars) or hashing preserves some provenance
-  without the size cost
-
-**Possible approach:**
-- `ghw start --prompt "add login with OAuth"` stores the prompt in
-  `.gitwhy/session.yaml`; subsequent commits inherit it
-- Auto-truncate to 500 characters with a `...` suffix indicator
-- Store a SHA-256 hash alongside the truncated prompt for integrity checks
-
-### 6. LLM-Generated Summary
+### 9. LLM-Generated Summary
 
 When `summary.enabled` is `true` (default) in `.gitwhy/config.yaml`, the
 auto-capture flow passes the changed file list (or diff) through an external

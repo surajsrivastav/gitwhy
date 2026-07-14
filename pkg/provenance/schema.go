@@ -1,6 +1,7 @@
 package provenance
 
 import (
+	"crypto/sha256"
 	"encoding/json"
 	"fmt"
 	"time"
@@ -65,11 +66,17 @@ type Context struct {
 }
 
 type Record struct {
-	Schema      string       `json:"schema" yaml:"schema"`
-	Target      Target       `json:"target" yaml:"target"`
-	Attribution Attribution  `json:"attribution" yaml:"attribution"`
-	Intent      Intent       `json:"intent" yaml:"intent"`
-	Context     Context      `json:"context,omitempty" yaml:"context,omitempty"`
+	Schema      string      `json:"schema" yaml:"schema"`
+	Target      Target      `json:"target" yaml:"target"`
+	Attribution Attribution `json:"attribution" yaml:"attribution"`
+	Intent      Intent      `json:"intent" yaml:"intent"`
+	Context     Context     `json:"context,omitempty" yaml:"context,omitempty"`
+	// RecordHash is a SHA-256 digest of the record's content (excluding this
+	// field), computed at Seal() time. It doesn't prevent tampering — anyone
+	// who can rewrite the note can also recompute the hash — but it detects
+	// tampering by anything that edits the stored JSON without going through
+	// gitwhy, e.g. a manual `git notes edit`.
+	RecordHash string `json:"record_hash,omitempty" yaml:"record_hash,omitempty"`
 }
 
 func NewRecord(targetType TargetType, ref string) *Record {
@@ -126,6 +133,54 @@ func (r *Record) Validate() error {
 		return fmt.Errorf("target ref is required")
 	}
 	return nil
+}
+
+// HashStatus describes the outcome of verifying a record's RecordHash.
+type HashStatus int
+
+const (
+	HashMissing HashStatus = iota
+	HashValid
+	HashTampered
+)
+
+func (s HashStatus) String() string {
+	switch s {
+	case HashValid:
+		return "valid"
+	case HashTampered:
+		return "tampered"
+	default:
+		return "missing"
+	}
+}
+
+// ComputeHash returns the SHA-256 digest (hex-encoded) of the record's
+// content, excluding RecordHash itself.
+func (r *Record) ComputeHash() string {
+	clone := *r
+	clone.RecordHash = ""
+	data, _ := json.Marshal(clone)
+	h := sha256.Sum256(data)
+	return fmt.Sprintf("%x", h)
+}
+
+// Seal stamps RecordHash with the record's current content hash. Call this
+// right before storing the record.
+func (r *Record) Seal() {
+	r.RecordHash = r.ComputeHash()
+}
+
+// VerifyHash reports whether the stored RecordHash matches the record's
+// current content.
+func (r *Record) VerifyHash() HashStatus {
+	if r.RecordHash == "" {
+		return HashMissing
+	}
+	if r.ComputeHash() == r.RecordHash {
+		return HashValid
+	}
+	return HashTampered
 }
 
 func (r *Record) Marshal() ([]byte, error) {

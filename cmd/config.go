@@ -3,6 +3,7 @@ package cmd
 import (
 	"fmt"
 	"os"
+	"time"
 
 	"github.com/spf13/cobra"
 	"gopkg.in/yaml.v3"
@@ -44,6 +45,8 @@ var configGetCmd = &cobra.Command{
 			fmt.Println(cfg.Backend)
 		case "default_model":
 			fmt.Println(cfg.DefaultModel)
+		case "model_updated_at":
+			fmt.Println(cfg.ModelUpdatedAt)
 		default:
 			return fmt.Errorf("unknown config key: %s", args[0])
 		}
@@ -77,6 +80,7 @@ var configSetCmd = &cobra.Command{
 			}
 		case "default_model":
 			cfg.DefaultModel = value
+			cfg.ModelUpdatedAt = time.Now().UTC().Format(time.RFC3339)
 		default:
 			return fmt.Errorf("unknown config key: %s", key)
 		}

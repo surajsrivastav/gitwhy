@@ -11,8 +11,9 @@ import (
 )
 
 var diffFlags struct {
-	drift bool
-	spec  string
+	drift    bool
+	spec     string
+	specHash string
 }
 
 var diffCmd = &cobra.Command{
@@ -21,21 +22,17 @@ var diffCmd = &cobra.Command{
 	Long: `Show git diff, optionally with drift detection against a spec.
 
 Use --drift to compare the current state against the originating spec
-and detect if the implementation has diverged.`,
+and detect if the implementation has diverged. --spec accepts a local file
+path, a GitHub issue URL, or any http(s) URL — the spec is re-fetched and
+re-hashed at compare time.`,
 	RunE: func(cmd *cobra.Command, args []string) error {
 		if diffFlags.drift && diffFlags.spec != "" && len(args) > 0 {
 			filePath := args[0]
 
-			specHash, err := drift.HashSpec(diffFlags.spec)
-			if err != nil {
-				return fmt.Errorf("hash spec: %w", err)
-			}
-
-			report, err := drift.DetectDrift(filePath, diffFlags.spec, diffFlags.spec, "", "")
+			report, err := drift.DetectDrift(filePath, diffFlags.spec, diffFlags.spec, diffFlags.specHash, "")
 			if err != nil {
 				return fmt.Errorf("drift detection: %w", err)
 			}
-			report.CurrentSpecHash = specHash
 
 			fmt.Print(report.String())
 			return nil
@@ -59,7 +56,8 @@ and detect if the implementation has diverged.`,
 
 func init() {
 	diffCmd.Flags().BoolVar(&diffFlags.drift, "drift", false, "Detect spec drift")
-	diffCmd.Flags().StringVar(&diffFlags.spec, "spec", "", "Spec to compare against")
+	diffCmd.Flags().StringVar(&diffFlags.spec, "spec", "", "Spec to compare against (file path, GitHub issue URL, or http(s) URL)")
+	diffCmd.Flags().StringVar(&diffFlags.specHash, "spec-hash", "", "Spec hash recorded at generation time (compare against the current fetch)")
 }
 
 

@@ -59,6 +59,15 @@ func printFullProvenance(record *provenance.Record) {
 	fmt.Printf("  by:        %s\n", record.Attribution.By)
 	fmt.Printf("  when:      %s\n", record.Attribution.Timestamp)
 
+	switch record.VerifyHash() {
+	case provenance.HashValid:
+		fmt.Printf("  integrity: valid ✓\n")
+	case provenance.HashTampered:
+		fmt.Printf("  integrity: TAMPERED — record_hash does not match content\n")
+	case provenance.HashMissing:
+		fmt.Printf("  integrity: no record_hash (recorded before tamper detection was added)\n")
+	}
+
 	if t, err := time.Parse(time.RFC3339, record.Attribution.Timestamp); err == nil {
 		fmt.Printf("            (%s ago)\n", time.Since(t).Round(time.Minute))
 	}

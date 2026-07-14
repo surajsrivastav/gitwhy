@@ -71,7 +71,19 @@ func init() {
 	rootCmd.AddCommand(diffCmd)
 	rootCmd.AddCommand(auditCmd)
 	rootCmd.AddCommand(statusCmd)
+	rootCmd.AddCommand(sessionCmd)
 	rootCmd.AddCommand(versionCmd)
+}
+
+// exitCodeError signals that the command should exit with a specific status
+// code without printing an error message (the command already printed its
+// own output describing the outcome).
+type exitCodeError struct {
+	code int
+}
+
+func (e *exitCodeError) Error() string {
+	return ""
 }
 
 func Execute() {
@@ -89,6 +101,9 @@ func Execute() {
 	}
 
 	if err := rootCmd.Execute(); err != nil {
+		if exitErr, ok := err.(*exitCodeError); ok {
+			os.Exit(exitErr.code)
+		}
 		fmt.Fprintln(os.Stderr, err)
 		os.Exit(1)
 	}
@@ -107,7 +122,7 @@ func isPassthrough(args []string) bool {
 	knownCommands := map[string]bool{
 		"commit": true, "init": true, "config": true,
 		"why": true, "log": true, "diff": true, "audit": true,
-		"status": true, "version": true,
+		"status": true, "session": true, "version": true,
 	}
 
 	if knownCommands[args[0]] {

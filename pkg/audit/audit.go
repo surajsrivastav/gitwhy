@@ -21,16 +21,87 @@ type ExportOptions struct {
 	From   time.Time
 	To     time.Time
 	Format ExportFormat
+	Filter FilterOptions
+}
+
+// FilterOptions narrows the record set returned by an export or search.
+// All non-empty fields are combined with AND logic.
+type FilterOptions struct {
+	By      string // exact match against attribution.by (e.g. "agent:claude-code")
+	Model   string // exact match against context.model
+	Ticket  string // exact match against context.ticket
+	Origin  string // exact match against intent.origin
+	Missing string // field name ("model", "ticket", "spec", "origin", "prompt") that must be empty/unknown
+}
+
+func (f FilterOptions) isZero() bool {
+	return f.By == "" && f.Model == "" && f.Ticket == "" && f.Origin == "" && f.Missing == ""
+}
+
+// ApplyFilter returns the subset of records matching opts. An empty
+// FilterOptions matches everything.
+func ApplyFilter(records []*provenance.Record, opts FilterOptions) []*provenance.Record {
+	if opts.isZero() {
+		return records
+	}
+
+	var out []*provenance.Record
+	for _, r := range records {
+		if opts.By != "" && string(r.Attribution.By) != opts.By {
+			continue
+		}
+		if opts.Model != "" && r.Context.Model != opts.Model {
+			continue
+		}
+		if opts.Ticket != "" && r.Context.Ticket != opts.Ticket {
+			continue
+		}
+		if opts.Origin != "" && string(r.Intent.Origin) != opts.Origin {
+			continue
+		}
+		if opts.Missing != "" && !fieldIsMissing(r, opts.Missing) {
+			continue
+		}
+		out = append(out, r)
+	}
+	return out
+}
+
+func fieldIsMissing(r *provenance.Record, field string) bool {
+	switch field {
+	case "model":
+		return r.Context.Model == "" || r.Context.Model == string(provenance.OriginUnknown)
+	case "ticket":
+		return r.Context.Ticket == ""
+	case "spec":
+		return r.Intent.Spec == ""
+	case "origin":
+		return r.Intent.Origin == "" || r.Intent.Origin == provenance.OriginUnknown
+	case "prompt":
+		return r.Context.Prompt == ""
+	default:
+		return false
+	}
 }
 
 type Summary struct {
-	TotalCommits      int     `json:"total_commits"`
-	AttributedCommits int     `json:"attributed_commits"`
-	AIPercentage      float64 `json:"ai_percentage"`
-	HumanPercentage   float64 `json:"human_percentage"`
+	TotalCommits      int            `json:"total_commits"`
+	AttributedCommits int            `json:"attributed_commits"`
+	AIPercentage      float64        `json:"ai_percentage"`
+	HumanPercentage   float64        `json:"human_percentage"`
 	AgentBreakdown    map[string]int `json:"agent_breakdown"`
-	SpecCoverage      int     `json:"spec_coverage"`
-	DriftFlags        int     `json:"drift_flags"`
+	SpecCoverage      int            `json:"spec_coverage"`
+	DriftFlags        int            `json:"drift_flags"`
+	CoverageTotal     int            `json:"coverage_total,omitempty"`
+	CoverageCovered   int            `json:"coverage_covered,omitempty"`
+}
+
+// SetCoverage records how many of the repo's total commits (covered) have a
+// provenance record, out of the overall commit count (total). Pass total <= 0
+// to leave the coverage line out of String().
+func (s *Summary) SetCoverage(total, covered int) {
+	s.CoverageTotal = total
+	s.CoverageCovered = covered
 }
 
 func GenerateExport(records []*provenance.Record, opts ExportOptions) (string, error) {
@@ -48,6 +119,8 @@ func GenerateExport(records []*provenance.Record, opts ExportOptions) (string, e
 		}
 		filtered = append(filtered, r)
 	}
+
+	filtered = ApplyFilter(filtered, opts.Filter)
 
 	switch opts.Format {
 	case FormatJSON:
@@ -114,6 +187,33 @@ func (s *Summary) String() string {
 	}
 	b.WriteString(fmt.Sprintf("  Spec coverage:      %d commits\n", s.SpecCoverage))
 	b.WriteString(fmt.Sprintf("  Drift flags:        %d commits\n", s.DriftFlags))
+	if s.CoverageTotal > 0 {
+		b.WriteString(fmt.Sprintf("  Coverage:           %d/%d commits\n", s.CoverageCovered, s.CoverageTotal))
+	}
+	return b.String()
+}
+
+// TableFormat renders records as a human-readable table for `ghw audit search`.
+func TableFormat(records []*provenance.Record) string {
+	if len(records) == 0 {
+		return "  no matching records\n"
+	}
+
+	var b strings.Builder
+	fmt.Fprintf(&b, "  %-9s  %-20s  %-19s  %-12s  %-10s  %s\n",
+		"COMMIT", "BY", "WHEN", "TICKET", "MODEL", "SPEC")
+	for _, r := range records {
+		ref := r.Target.Ref
+		if len(ref) > 9 {
+			ref = ref[:9]
+		}
+		when := r.Attribution.Timestamp
+		if t, err := time.Parse(time.RFC3339, when); err == nil {
+			when = t.Format("2006-01-02 15:04")
+		}
+		fmt.Fprintf(&b, "  %-9s  %-20s  %-19s  %-12s  %-10s  %s\n",
+			ref, r.Attribution.By, when, r.Context.Ticket, r.Context.Model, r.Intent.Spec)
+	}
 	return b.String()
 }
 

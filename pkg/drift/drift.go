@@ -59,7 +59,7 @@ func DetectDrift(filePath, specID, specPath, specHashAtGen, generatedBy string) 
 		return report, nil
 	}
 
-	currentHash, err := HashSpec(specPath)
+	currentHash, err := HashSpecAny(specPath)
 	if err != nil {
 		return nil, fmt.Errorf("hash current spec: %w", err)
 	}
@@ -93,12 +93,12 @@ func DetectDrift(filePath, specID, specPath, specHashAtGen, generatedBy string) 
 }
 
 func estimateAffectedLines(specPath string) int {
-	data, err := os.ReadFile(specPath)
+	content, err := FetchSpecContent(specPath)
 	if err != nil {
 		return 0
 	}
 	lines := 0
-	for _, b := range data {
+	for _, b := range []byte(content) {
 		if b == '\n' {
 			lines++
 		}
