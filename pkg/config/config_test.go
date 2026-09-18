@@ -440,3 +440,17 @@ func TestCountCaptureErrorsMissing(t *testing.T) {
 		t.Errorf("expected 0 for missing file, got %d", count)
 	}
 }
+
+func TestLoadInvalidConfigKeepsRepoPath(t *testing.T) {
+	tmpDir := t.TempDir()
+	os.MkdirAll(ConfigDir(tmpDir), 0755)
+	os.WriteFile(ConfigPath(tmpDir), []byte("invalid: yaml: [[["), 0644)
+
+	cfg, err := Load(tmpDir)
+	if err != nil {
+		t.Fatalf("Load() should not error on invalid config, got: %v", err)
+	}
+	if cfg.RepoPath != tmpDir {
+		t.Errorf("Load() dropped RepoPath on invalid config: got %q, want %q", cfg.RepoPath, tmpDir)
+	}
+}

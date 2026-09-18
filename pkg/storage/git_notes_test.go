@@ -356,3 +356,129 @@ func TestFactoryGetGitNotesBackend(t *testing.T) {
 		t.Errorf("expected name 'git-notes', got %q", got.Name())
 	}
 }
+
+func TestEnsureNotesRefPreservesExistingNote(t *testing.T) {
+	repoPath := initGitRepo(t)
+	commitHash := commitFile(t, repoPath, "test.txt", "hello")
+
+	// Put a real provenance note on HEAD first.
+	backend := NewGitNotesBackend(repoPath)
+	record := provenance.NewRecord(provenance.TargetCommit, commitHash)
+	record.SetIntent("real intent", provenance.OriginHuman, "", "")
+	if err := backend.Store(record); err != nil {
+		t.Fatal(err)
+	}
+
+	// EnsureNotesRef must not destroy the existing note.
+	if err := EnsureNotesRef(repoPath); err != nil {
+		t.Fatalf("EnsureNotesRef() error = %v", err)
+	}
+
+	got, err := backend.Get(commitHash)
+	if err != nil {
+		t.Fatalf("Get() after EnsureNotesRef: %v", err)
+	}
+	if got.Intent.Summary != "real intent" {
+		t.Errorf("existing note was clobbered: got summary %q", got.Intent.Summary)
+	}
+}
+
+func TestEnsureNotesRefCreatesRef(t *testing.T) {
+	repoPath := initGitRepo(t)
+	commitFile(t, repoPath, "test.txt", "hello")
+
+	if err := EnsureNotesRef(repoPath); err != nil {
+		t.Fatalf("EnsureNotesRef() error = %v", err)
+	}
+
+	// The notes ref should exist now, and HEAD should have no note
+	// (only the placeholder we created and removed).
+	out, err := exec.Command("git", "-C", repoPath, "rev-parse", "--verify", NotesRef).CombinedOutput()
+	if err != nil {
+		t.Fatalf("notes ref was not created: %v\n%s", err, out)
+	}
+	showOut, showErr := exec.Command("git", "-C", repoPath, "notes", "--ref", NotesRef, "show", "HEAD").CombinedOutput()
+	if showErr == nil {
+		t.Errorf("expected no note on HEAD after placeholder removal, got: %s", showOut)
+	}
+}
+
+func TestPrBlobSHA(t *testing.T) {
+	// Known vector verified against `git hash-object` of "gitwhy-pr:123".
+	if got := prBlobSHA("123"); got != "ef050f20a878b34666f99bb48cbc4e501a645789" {
+		t.Errorf("prBlobSHA(123) = %s, want ef050f20a878b34666f99bb48cbc4e501a645789", got)
+	}
+	// Cross-check the pure-Go computation against git itself.
+	out, err := exec.Command("sh", "-c", `printf 'gitwhy-pr:456' | git hash-object --stdin`).CombinedOutput()
+	if err != nil {
+		t.Fatal(err)
+	}
+	if want := strings.TrimSpace(string(out)); prBlobSHA("456") != want {
+		t.Errorf("prBlobSHA(456) = %s, git says %s", prBlobSHA("456"), want)
+	}
+}
+
+func TestGitNotesBackendStoreAndGetPRNumber(t *testing.T) {
+	repoPath := initGitRepo(t)
+	commitFile(t, repoPath, "test.txt", "hello")
+	backend := NewGitNotesBackend(repoPath)
+
+	record := provenance.NewRecord(provenance.TargetPR, "123")
+	record.SetAttribution(provenance.AttributionHuman)
+	record.SetIntent("pr intent", provenance.OriginHuman, "", "")
+
+	if err := backend.Store(record); err != nil {
+		t.Fatalf("Store() with bare PR number: %v", err)
+	}
+
+	got, err := backend.Get("123")
+	if err != nil {
+		t.Fatalf("Get(123): %v", err)
+	}
+	if got.Target.Type != provenance.TargetPR {
+		t.Errorf("expected PR target type, got %q", got.Target.Type)
+	}
+	if got.Target.Ref != "123" {
+		t.Errorf("expected ref 123, got %q", got.Target.Ref)
+	}
+	if got.Intent.Summary != "pr intent" {
+		t.Errorf("expected intent preserved, got %q", got.Intent.Summary)
+	}
+}
+
+func TestGitNotesBackendGetMissingPRNumber(t *testing.T) {
+	repoPath := initGitRepo(t)
+	commitFile(t, repoPath, "test.txt", "hello")
+	backend := NewGitNotesBackend(repoPath)
+
+	_, err := backend.Get("456")
+	if err == nil {
+		t.Fatal("expected error for missing PR number")
+	}
+	if !strings.Contains(err.Error(), "no provenance record for 456") {
+		t.Errorf("expected 'no provenance record for 456', got: %v", err)
+	}
+}
+
+func TestGitNotesBackendListPreservesPRRef(t *testing.T) {
+	repoPath := initGitRepo(t)
+	commitFile(t, repoPath, "test.txt", "hello")
+	backend := NewGitNotesBackend(repoPath)
+
+	record := provenance.NewRecord(provenance.TargetPR, "123")
+	record.SetIntent("pr intent", provenance.OriginHuman, "", "")
+	if err := backend.Store(record); err != nil {
+		t.Fatal(err)
+	}
+
+	records, err := backend.List()
+	if err != nil {
+		t.Fatalf("List(): %v", err)
+	}
+	if len(records) != 1 {
+		t.Fatalf("expected 1 record, got %d", len(records))
+	}
+	if records[0].Target.Ref != "123" {
+		t.Errorf("List() clobbered PR ref: got %q, want 123", records[0].Target.Ref)
+	}
+}
