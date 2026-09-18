@@ -268,7 +268,9 @@ func Load(repoPath string) (*Config, error) {
 			hint = " (" + err.Error() + ")"
 		}
 		fmt.Fprintf(os.Stderr, "  gitwhy: config invalid%s — using defaults\n", hint)
-		return DefaultConfig(), nil
+		fallback := DefaultConfig()
+		fallback.RepoPath = repoPath
+		return fallback, nil
 	}
 
 	if cfg.Summary != nil && cfg.Summary.Enabled {
